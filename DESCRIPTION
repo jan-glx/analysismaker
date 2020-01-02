@@ -1,0 +1,24 @@
+Package: analysismaker
+Type: Package
+Title: Analysis maker
+Version: 0.1.0
+Authors@R: 
+    person(given = "Jan",
+           family = "Gleixner",
+           role = c("aut", "cre"),
+           email = "jan.gleinxer@gmail.com",
+           comment = c(ORCID = "0000-0001-5006-7375"))
+Description: Helper package to create make files to run dependent .RMD files.
+Imports:
+  callr,
+  digest,
+  fs,
+  magrittr,
+  Matrix,
+  rlang,
+  rmarkdown,
+  tidyselect
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.0.0

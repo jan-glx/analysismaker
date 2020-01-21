@@ -1,6 +1,6 @@
 #' @export
-new_analysis <- function(name="analysis") {
-  rval <- list(name=name, notebooks=character(0), dependencies=list())
+new_analysis <- function(name="analysis", notebook_dir="notebooks") {
+  rval <- list(name=name, notebooks=character(0), dependencies=list(), notebook_dir=notebook_dir)
   class(rval) <- "analysis"
   rval
 }
@@ -61,38 +61,39 @@ bind_parameters <- function(analysis, ..., output_dir="results", parameter_set_n
   analysis$file_dependencies <- list()
   for(notebook in names(analysis$notebooks)) {
     notebook_file <- analysis$notebooks[[notebook]]
-    params <- rmarkdown::yaml_front_matter(fs::path("notebooks", notebook_file))$params
+    params <- rmarkdown::yaml_front_matter(fs::path(analysis$notebook_dir, notebook_file))$params
     params$results_dir <- NULL #results_dir
 
     augmented_params <- list()
     augmented_params[names(analysis$dependencies[[notebook]])] <- all_params[analysis$dependencies[[notebook]]]
-    augmented_params[is.null(augmented_params)] <- NULL
+    #augmented_params[is.null(augmented_params)] <- NULL
     augmented_params <- c(augmented_params, all_params)
 
     # to inform the user that he might have done wrong:
     params_not_supplied <- setdiff(names(params), names(augmented_params))
     unused_params[names(params)] <- NULL
-    if (length(params_not_supplied)>0) message(length(params_not_supplied), " parameter(s) not supplied for \"", notebook, "\". Using defaults:\n",
+    if (length(params_not_supplied)>0) message(length(params_not_supplied), " parameter(s) not supplied for \"", notebook_file, "\", (", notebook, "). Using defaults:\n",
                                                paste0(params_not_supplied, ": ", params[params_not_supplied],  collapse="\n"), "\n")
-
-    this_notebook_params <- params
-    this_notebook_params[names(params)] <- augmented_params[names(params)]
+    augmented_params[params_not_supplied] <- params[params_not_supplied]
+    this_notebook_params <- augmented_params[names(params)]
     this_notebook_params_hash <- hash_params(this_notebook_params)
     results_dir <- fs::path(output_dir, fs::path_sanitize(fs::path_ext_remove(notebook_file)), fs::path_sanitize(this_notebook_params_hash))
     this_notebook_params$results_dir <- results_dir
 
-
-    fs::dir_create(results_dir)
-    sym_link_from <- fs::path(output_dir, fs::path_sanitize(fs::path_ext_remove(notebook_file)), parameter_set_name)
-    tryCatch(fs::link_delete(sym_link_from), error = function(e) NULL)
-    fs::link_create(fs::path_sanitize(this_notebook_params_hash), sym_link_from)
     params_string <- gsub(" +", " ", paste(deparse(this_notebook_params[sort(names(this_notebook_params))]), collapse=""))
-    cat(params_string, file = fs::path(results_dir, "params.txt"))
-    fs::file_create(fs::path(results_dir,  substr(fs::path_sanitize(params_string), 1, 50)))
+
+    # fs::dir_create(results_dir)
+    # sym_link_from <- fs::path(output_dir, fs::path_sanitize(fs::path_ext_remove(notebook_file)), parameter_set_name)
+    # tryCatch(fs::link_delete(sym_link_from), error = function(e) NULL)
+    # fs::link_create(fs::path_sanitize(this_notebook_params_hash), sym_link_from)
+    # cat(params_string, file = fs::path(results_dir, "params.txt"))
+    # fs::file_create(fs::path(results_dir,  substr(fs::path_sanitize(params_string), 1, 50)))
 
     #save results_dir for dependent
     all_params[notebook] <- results_dir
 
+    analysis$params_string[[notebook]] <- params_string
+    analysis$params_hash[[notebook]] <- this_notebook_params_hash
     analysis$params[[notebook]] <- this_notebook_params
     analysis$out_file[[notebook]] <- fs::path(results_dir, fs::path_ext_set(notebook_file, "html"))
     analysis$out_dir[[notebook]] <- results_dir
@@ -131,10 +132,10 @@ gen_render_command <- function(notebook_file, output_file, output_dir, params, r
 gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis))) {
   c(gen_make_rule(analysis_name, analysis$out_file),
     sapply(names(analysis$notebooks), function(notebook) {
-      notebook_file <- fs::path("notebooks", analysis$notebooks[[notebook]])
+      notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])
       gen_make_rule(
         out = analysis$out_file[[notebook]],
-        deps = c(notebook_file, fs::path("notebooks", "setup_chunk.R"), analysis$file_dependencies[[notebook]]),
+        deps = c(notebook_file, fs::path(analysis$notebook_dir, "setup_chunk.R"), analysis$file_dependencies[[notebook]]),
         recipe = gen_render_command(
           notebook_file = notebook_file,
           output_file = analysis$out_file[[notebook]],
@@ -147,59 +148,26 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
   ) %>% paste0(collapse="\n")
 }
 
+gen_folders <- function(analysis, analysis_name) {
+  for(notebook in names(analysis$notebooks)) {
+    notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])
+    results_dir <- analysis$out_dir[[notebook]]
+    fs::dir_create(results_dir)
+    sym_link_from <- fs::path(results_dir, "..", analysis_name)
+    tryCatch(fs::link_delete(sym_link_from), error = function(e) NULL)
+    fs::link_create(fs::path_sanitize(analysis$params_hash[[notebook]]), sym_link_from)
+    cat(analysis$params_string[[notebook]], file = fs::path(results_dir, "params.txt"))
+    fs::file_create(fs::path(results_dir,  substr(fs::path_sanitize(analysis$params_string[[notebook]]), 1, 50)))
+  }
+}
+
 #' @export
 make_makefile <- function(analysis,
                   analysis_name = paste0(deparse(substitute(analysis)), collapse = ""),
                   makefile = paste0(analysis_name, ".mk")) {
   all_rules <- gen_make_rules(analysis = analysis, analysis_name = analysis_name)
+  gen_folders(analysis = analysis, analysis_name = analysis_name)
   cat(paste0(all_rules, collapse="\n"), file = makefile)
   if(!fs::file_exists("Makefile")) cat("include *.mk\n", file="Makefile")
   invisible(NULL)
-}
-
-#' @export
-make_all_formats <- function(analysis, figure_formats = c("png", "svg", "pdf"),
-                             analysis_name = paste0(deparse(substitute(analysis)), collapse = ""),
-                             makefile = paste0(analysis_name, ".mk")) {
-  all_rules <-
-    c(
-      gen_make_rule(analysis_name, paste0(analysis_name, "_", figure_formats)),
-      gen_make_rules(analysis = analysis, analysis_name = paste0(analysis_name, "_", figure_formats[1])),
-      sapply(figure_formats[-1], function(figure_format) {
-
-        analysis$params <- lapply(analysis$params, function(params) {
-          params$results_dir <- expr(tempdir())
-          params
-        })
-        analysis$out_file <- lapply(analysis$out_file, function(out_file) paste0(fs::path_ext_remove(out_file), "_", figure_format, ".", fs::path_ext(out_file)))
-        rmarkdown_params <- exprs(output_format = rmarkdown::html_document(dev="png"))
-        gen_make_rules(analysis = analysis, rmarkdown_params = rmarkdown_params, analysis_name = paste0(analysis_name, "_", figure_format))
-      })
-    )
-  cat(paste0(all_rules, collapse="\n"), file = makefile)
-  if(!fs::file_exists("Makefile")) cat("include *.mk\n", file="Makefile")
-  invisible(NULL)
-}
-#' @importFrom stats setNames
-#' @importFrom utils stack
-dependency_matrix <- function(dependencies) {
-  all_notebooks <- names(dependencies)
-  dependencies <- setNames(stack(dependencies), c("parent", "child"))
-  n <- length(all_notebooks)
-  map <- seq(1, n)
-  names(map) <- all_notebooks
-  A <- Matrix::sparseMatrix(i = as.integer(map[dependencies$child]), j = as.integer(map[dependencies$parent]), dims=c(n, n), dimnames = list(all_notebooks, all_notebooks))
-  A
-}
-
-simplify_dependencies <- function(dependencies) {
-  A <- dependency_matrix(dependencies)
-  n <- ncol(A)
-  S <- 0
-  An <- A
-  for (i in seq_len(n-1)) {
-    An <- An %*% A
-    S <- S | An
-  }
-  A & !S
 }

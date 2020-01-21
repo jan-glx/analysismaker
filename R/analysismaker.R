@@ -5,3 +5,7 @@
 #' @importFrom magrittr `%>%` `%<>%`
 NULL
 
+#' @export
+`%>%` <- magrittr::`%>%`
+#' @export
+`%<>%` <- magrittr::`%<>%`

@@ -2,10 +2,12 @@
 #' @name analysismaker
 #' @docType package
 #' @import rlang
-#' @importFrom magrittr `%>%` `%<>%`
 NULL
 
+#' @importFrom magrittr `%>%`
 #' @export
-`%>%` <- magrittr::`%>%`
+magrittr::`%>%`
+
+#' @importFrom magrittr `%<>%`
 #' @export
-`%<>%` <- magrittr::`%<>%`
+magrittr::`%<>%`

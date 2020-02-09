@@ -9,42 +9,15 @@ new_analysis <- function(name="analysis", notebook_dir="notebooks") {
 add_notebook <- function(object, ...){
   dots <- ensyms(...)
   dependencies <- tidyselect::vars_select(.vars = names(object$notebooks), !!!dots[-1])
-  notebook_file <- tidyselect::vars_select(.vars = sapply(dots[1], as.character), !!!dots[1]) #`mode<-`(dots[1], "character")# tidyselect::vars_select(.vars = sapply(dots[1], as.character), !!!dots[1])
+  notebook_file <- tidyselect::vars_select(.vars = sapply(dots[1], as.character), !!!dots[1])
 
   object$notebooks %<>% append(notebook_file)
   object$dependencies %<>% append(list2(!!names(notebook_file):=dependencies))
   object
 }
 
-#a <- add_notebook
-
 #' @export
 render_separately <- function(...)  callr::r(function(...) rmarkdown::render(..., envir = globalenv()), args = list(...), show = TRUE)
-
-#' @export
-knit_all_formats <- function(rmd_file, params_=list(), figure_formats=c("png", "pdf", "svg")) {
-  rmd_file_plain <- fs::path_ext_remove(fs::path_file(rmd_file))
-
-  params_string <- gsub(" +", " ", paste(deparse(params_[seq_along(params_)]), collapse=""))
-  params_hash <- substr(digest::digest(params_string), 1, 8)
-  results_dir <- fs::path("results", fs::path_sanitize(rmd_file_plain), fs::path_sanitize(params_hash))
-  fs::dir_create(results_dir)
-  cat(params_string, file = fs::path(results_dir, "params.txt"))
-  cat(params_string, file = fs::path(results_dir,  substr(paste0(fs::path_sanitize(params_string), ext="txt"), 1,50)))
-
-  lapply(
-    figure_formats,
-    function(figure_format) render_separately(
-      input = rmd_file,
-      params = c(params_, results_dir=results_dir),
-      output_file = paste0(rmd_file_plain, "_", figure_format),
-      output_format = rmarkdown::html_document(dev=figure_format, keep_md=TRUE),
-      output_dir = fs::path(results_dir),
-      encoding = 'UTF-8'
-    )
-  )
-  results_dir
-}
 
 hash_params <- function(params) {
   params_string <- gsub(" +", " ", paste(deparse(params[sort(names(params))]), collapse=""))
@@ -82,13 +55,6 @@ bind_parameters <- function(analysis, ..., output_dir="results", parameter_set_n
 
     params_string <- gsub(" +", " ", paste(deparse(this_notebook_params[sort(names(this_notebook_params))]), collapse=""))
 
-    # fs::dir_create(results_dir)
-    # sym_link_from <- fs::path(output_dir, fs::path_sanitize(fs::path_ext_remove(notebook_file)), parameter_set_name)
-    # tryCatch(fs::link_delete(sym_link_from), error = function(e) NULL)
-    # fs::link_create(fs::path_sanitize(this_notebook_params_hash), sym_link_from)
-    # cat(params_string, file = fs::path(results_dir, "params.txt"))
-    # fs::file_create(fs::path(results_dir,  substr(fs::path_sanitize(params_string), 1, 50)))
-
     #save results_dir for dependent
     all_params[notebook] <- results_dir
 
@@ -111,8 +77,6 @@ expr_to_shell <- function(expr) {
 gen_make_rule <- function(out, deps = character(0), recipe = character(0)) {
   paste0(out, ":", paste0(sprintf(" %s", deps), collapse = ""), "\n", paste0(sprintf("\t%s\n", recipe), collapse=""))
 }
-
-#gen_format_expr
 
 gen_render_command <- function(notebook_file, output_file, output_dir, params, rmarkdown_params = NULL) {
   rmarkdown_params <- rmarkdown_params %||% exprs(output_format = rmarkdown::html_document(dev="png", keep_md=TRUE))

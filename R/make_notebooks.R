@@ -92,20 +92,38 @@ gen_render_command <- function(notebook_file, output_file, output_dir, params, r
   expr_to_shell(render_expr)
 }
 
+gen_clean_command <- function(output_dir) {
+  paste0('-rm -r "', output_dir, '"')
+}
+
 #' @export
 gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis))) {
-  c(gen_make_rule(analysis_name, analysis$out_file),
+  c(gen_make_rule(paste0("clean_", analysis_name), sprintf("clean_%s", analysis$out_dir)),
+    gen_make_rule(analysis_name, analysis$out_file),
     sapply(names(analysis$notebooks), function(notebook) {
       notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])
-      gen_make_rule(
-        out = analysis$out_file[[notebook]],
-        deps = c(notebook_file, fs::path(analysis$notebook_dir, "setup_chunk.R"), analysis$file_dependencies[[notebook]]),
-        recipe = gen_render_command(
-          notebook_file = notebook_file,
-          output_file = analysis$out_file[[notebook]],
-          output_dir = analysis$out_dir[[notebook]],
-          params =  analysis$params[[notebook]],
-          rmarkdown_params = rmarkdown_params
+      clean_target <- paste0("clean_", analysis$out_dir[[notebook]])
+      c(
+        gen_make_rule(
+          out = clean_target,
+          recipe = gen_clean_command(
+            output_dir = analysis$out_dir[[notebook]])
+          ),
+        gen_make_rule(
+          out = analysis$out_file[[notebook]],
+          deps = c(notebook_file, fs::path(analysis$notebook_dir, "setup_chunk.R"), analysis$file_dependencies[[notebook]]),
+          recipe = c(
+            gen_clean_command(
+              output_dir = analysis$out_dir[[notebook]]
+            ),
+            gen_render_command(
+              notebook_file = notebook_file,
+              output_file = analysis$out_file[[notebook]],
+              output_dir = analysis$out_dir[[notebook]],
+              params =  analysis$params[[notebook]],
+              rmarkdown_params = rmarkdown_params
+            )
+          )
         )
       )
     })

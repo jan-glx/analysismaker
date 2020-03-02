@@ -99,10 +99,28 @@ gen_clean_command <- function(output_dir) {
   paste0('-rm -r "', output_dir, '"')
 }
 
+gen_output_dir_command <- function(output_dir) {
+  paste0('-mkdir -p "', output_dir, '"')
+}
+
+gen_symlink_commands <- function(out_dir_human, notebook_name, output_dir) {
+  c(paste0('-rm -r "', fs::path(out_dir_human, notebook_name), '"'),
+    paste0('-mkdir -p "', out_dir_human, '"'),
+    paste0('-ln -S "', fs::path(out_dir_human, notebook_name), '" "', output_dir, '"')
+  )
+}
+
+
 #' @export
-gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis))) {
-  c(gen_make_rule(paste0("clean_", analysis_name), sprintf("clean_%s", analysis$out_dir)),
-    gen_make_rule(analysis_name, analysis$out_file),
+gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis)), out_dir_human = "results_human") {
+  c(gen_make_rule(
+    out = paste0("clean_", analysis_name),
+    deps = sprintf("clean_%s", analysis$out_dir)
+    ),
+    gen_make_rule(
+      out = analysis_name,
+      deps = analysis$out_file
+    ),
     sapply(names(analysis$notebooks), function(notebook) {
       notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])
       clean_target <- paste0("clean_", analysis$out_dir[[notebook]])
@@ -114,9 +132,16 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
           ),
         gen_make_rule(
           out = analysis$out_file[[notebook]],
-          deps = c(notebook_file, fs::path(analysis$notebook_dir, "setup_chunk.R"), analysis$file_dependencies[[notebook]]),
+          deps = c(
+            notebook_file,
+            fs::path(analysis$notebook_dir, "setup_chunk.R"),
+            analysis$file_dependencies[[notebook]]
+          ),
           recipe = c(
             gen_clean_command(
+              output_dir = analysis$out_dir[[notebook]]
+            ),
+            gen_output_dir_command(
               output_dir = analysis$out_dir[[notebook]]
             ),
             gen_render_command(
@@ -125,6 +150,11 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
               output_dir = analysis$out_dir[[notebook]],
               params =  analysis$params[[notebook]],
               rmarkdown_params = rmarkdown_params
+            ),
+            gen_symlink_commands(
+              out_dir_human = out_dir_human,
+              notebook_name = analysis$notebook_name[[notebook]],
+              output_dir = analysis$out_dir[[notebook]]
             )
           )
         )
@@ -133,25 +163,16 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
   ) %>% paste0(collapse="\n")
 }
 
-gen_folders <- function(analysis, analysis_name) {
-  for(notebook in names(analysis$notebooks)) {
-    notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])
-    results_dir <- analysis$out_dir[[notebook]]
-    fs::dir_create(results_dir)
-    sym_link_from <- fs::path(results_dir, "..", analysis_name)
-    tryCatch(fs::link_delete(sym_link_from), error = function(e) NULL)
-    fs::link_create(fs::path_sanitize(analysis$params_hash[[notebook]]), sym_link_from)
-    cat(analysis$params_string[[notebook]], file = fs::path(results_dir, "params.txt"))
-    fs::file_create(fs::path(results_dir,  substr(fs::path_sanitize(analysis$params_string[[notebook]]), 1, 50)))
-  }
-}
-
 #' @export
 make_makefile <- function(analysis,
                   analysis_name = paste0(deparse(substitute(analysis)), collapse = ""),
-                  makefile = paste0(analysis_name, ".mk")) {
-  all_rules <- gen_make_rules(analysis = analysis, analysis_name = analysis_name)
-  gen_folders(analysis = analysis, analysis_name = analysis_name)
+                  makefile = paste0(analysis_name, ".mk"),
+                  out_dir_human = "results_human") {
+  all_rules <- gen_make_rules(
+    analysis = analysis,
+    analysis_name = analysis_name,
+    out_dir_human = out_dir_human
+  )
   cat(paste0(all_rules, collapse="\n"), file = makefile)
   if(!fs::file_exists("Makefile")) cat("include *.mk\n", file="Makefile")
   invisible(NULL)

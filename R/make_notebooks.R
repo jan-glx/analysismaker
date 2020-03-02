@@ -30,6 +30,7 @@ bind_parameters <- function(analysis, ..., output_dir="results", parameter_set_n
   unused_params <- all_params
   analysis$params <- list()
   analysis$out_file <- list()
+  analysis$notebook_name <- list()
   analysis$out_dir <- list()
   analysis$file_dependencies <- list()
   for(notebook in names(analysis$notebooks)) {
@@ -50,7 +51,8 @@ bind_parameters <- function(analysis, ..., output_dir="results", parameter_set_n
     augmented_params[params_not_supplied] <- params[params_not_supplied]
     this_notebook_params <- augmented_params[names(params)]
     this_notebook_params_hash <- hash_params(this_notebook_params)
-    results_dir <- fs::path(output_dir, fs::path_sanitize(fs::path_ext_remove(notebook_file)), fs::path_sanitize(this_notebook_params_hash))
+    notebook_name <- fs::path_sanitize(fs::path_ext_remove(notebook_file))
+    results_dir <- fs::path(output_dir, notebook_name, fs::path_sanitize(this_notebook_params_hash))
     this_notebook_params$results_dir <- results_dir
 
     params_string <- gsub(" +", " ", paste(deparse(this_notebook_params[sort(names(this_notebook_params))]), collapse=""))
@@ -58,6 +60,7 @@ bind_parameters <- function(analysis, ..., output_dir="results", parameter_set_n
     #save results_dir for dependent
     all_params[notebook] <- results_dir
 
+    analysis$notebook_name[[notebook]] <- notebook_name
     analysis$params_string[[notebook]] <- params_string
     analysis$params_hash[[notebook]] <- this_notebook_params_hash
     analysis$params[[notebook]] <- this_notebook_params

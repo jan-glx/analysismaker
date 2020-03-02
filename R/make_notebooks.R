@@ -114,12 +114,12 @@ gen_symlink_commands <- function(out_dir_human, notebook_name, output_dir) {
 #' @export
 gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis)), out_dir_human = "results_human") {
   c(gen_make_rule(
-    out = paste0("clean_", analysis_name),
-    deps = sprintf("clean_%s", analysis$out_dir)
-    ),
-    gen_make_rule(
       out = analysis_name,
       deps = analysis$out_file
+    ),
+    gen_make_rule(
+    out = paste0("clean_", analysis_name),
+    deps = sprintf("clean_%s", analysis$out_dir)
     ),
     sapply(names(analysis$notebooks), function(notebook) {
       notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])

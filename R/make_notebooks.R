@@ -106,7 +106,7 @@ gen_output_dir_command <- function(output_dir) {
 gen_symlink_commands <- function(out_dir_human, notebook_name, output_dir) {
   c(paste0('-rm -r "', fs::path(out_dir_human, notebook_name), '"'),
     paste0('-mkdir -p "', out_dir_human, '"'),
-    paste0('-ln -s "', output_dir, '" "', fs::path(out_dir_human, notebook_name), '"')
+    paste0('-ln -s "', fs::path("..", output_dir), '" "', fs::path(out_dir_human, notebook_name), '"')
   )
 }
 

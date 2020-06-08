@@ -5,5 +5,5 @@
 \alias{analysismaker}
 \title{Helper package to create make files for .RMD files with dependencies}
 \description{
-Helper package to create make files for .RMD files with dependencies
+This package halps to create makefiles to render interdependent notebooks with parameters.
 }

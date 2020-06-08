@@ -96,23 +96,23 @@ gen_render_command <- function(notebook_file, output_file, output_dir, params, r
 }
 
 gen_clean_command <- function(output_dir) {
-  paste0('-rm -r "', output_dir, '"')
+  paste0('-rm -rf "', output_dir, '"')
 }
 
 gen_output_dir_command <- function(output_dir) {
   paste0('-mkdir -p "', output_dir, '"')
 }
 
-gen_symlink_commands <- function(out_dir_human, notebook_name, output_dir) {
-  c(paste0('-rm -r "', fs::path(out_dir_human, notebook_name), '"'),
-    paste0('-mkdir -p "', out_dir_human, '"'),
-    paste0('-ln -s "', fs::path("..", output_dir), '" "', fs::path(out_dir_human, notebook_name), '"')
+gen_symlink_commands <- function(from, to) {
+  c(paste0('-rm -rf "', from, '"'),
+    paste0('-mkdir -p "', fs::path_dir(from), '"'),
+    paste0('-ln -s "', fs::path_rel(to, fs::path_dir(from)), '" "', from, '"')
   )
 }
 
 
 #' @export
-gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis)), out_dir_human = "results_human") {
+gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis)), out_dir_human = fs::path("results_human", analysis_name)) {
   c(gen_make_rule(
       out = analysis_name,
       deps = analysis$out_file
@@ -152,9 +152,8 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
               rmarkdown_params = rmarkdown_params
             ),
             gen_symlink_commands(
-              out_dir_human = out_dir_human,
-              notebook_name = analysis$notebook_name[[notebook]],
-              output_dir = analysis$out_dir[[notebook]]
+              from = fs::path(out_dir_human, analysis$notebook_name[[notebook]]),
+              to = analysis$out_dir[[notebook]]
             )
           )
         )
@@ -167,7 +166,7 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
 make_makefile <- function(analysis,
                   analysis_name = paste0(deparse(substitute(analysis)), collapse = ""),
                   makefile = paste0(analysis_name, ".mk"),
-                  out_dir_human = "results_human") {
+                  out_dir_human = fs::path("results_human", analysis_name)) {
   all_rules <- gen_make_rules(
     analysis = analysis,
     analysis_name = analysis_name,

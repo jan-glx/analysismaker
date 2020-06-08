@@ -103,9 +103,9 @@ gen_output_dir_command <- function(output_dir) {
   paste0('-mkdir -p "', output_dir, '"')
 }
 
-gen_symlink_commands <- function(from, to) {
+gen_symlink_commands <- function(to, from) {
   c(paste0('-rm -rf "', from, '"'),
-    paste0('-mkdir -p "', fs::path_dir(from), '"'),
+    paste0('mkdir -p "', fs::path_dir(from), '"'),
     paste0('-ln -s "', fs::path_rel(to, fs::path_dir(from)), '" "', from, '"')
   )
 }
@@ -113,9 +113,14 @@ gen_symlink_commands <- function(from, to) {
 
 #' @export
 gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = deparse(substitute(analysis)), out_dir_human = fs::path("results_human", analysis_name)) {
+  analysis$out_dir_human <- fs::path(out_dir_human, analysis$notebook_name)
+  names(analysis$out_dir_human) <- names(analysis$notebook_name)
+  analysis$out_file_human <- stringr::str_replace(analysis$out_file, pattern = stringr::fixed(as.character(analysis$out_dir)), replacement = stringr::fixed(as.character(analysis$out_dir_human)))
+  names(analysis$out_file_human) <- names(analysis$out_file)
+
   c(gen_make_rule(
       out = analysis_name,
-      deps = analysis$out_file
+      deps = analysis$out_file_human
     ),
     gen_make_rule(
     out = paste0("clean_", analysis_name),
@@ -124,37 +129,44 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
     sapply(names(analysis$notebooks), function(notebook) {
       notebook_file <- fs::path(analysis$notebook_dir, analysis$notebooks[[notebook]])
       clean_target <- paste0("clean_", analysis$out_dir[[notebook]])
+      analysis_out_dir_human <- analysis$out_dir_human[[notebook]]
+      analysis_out_dir <- analysis$out_dir[[notebook]]
+      analysis_out_file <- analysis$out_file[[notebook]]
+      analysis_out_file_human <- analysis$out_file_human[[notebook]]
+
       c(
         gen_make_rule(
           out = clean_target,
-          recipe = gen_clean_command(
-            output_dir = analysis$out_dir[[notebook]])
+          recipe = c(
+            gen_clean_command(output_dir = analysis_out_dir),
+            gen_clean_command(output_dir = analysis_out_dir_human)
           ),
+        ),
         gen_make_rule(
-          out = analysis$out_file[[notebook]],
+          out = analysis_out_file,
           deps = c(
             notebook_file,
             fs::path(analysis$notebook_dir, "setup_chunk.R"),
             analysis$file_dependencies[[notebook]]
           ),
           recipe = c(
-            gen_clean_command(
-              output_dir = analysis$out_dir[[notebook]]
-            ),
-            gen_output_dir_command(
-              output_dir = analysis$out_dir[[notebook]]
-            ),
+            gen_clean_command(output_dir = analysis_out_dir),
+            gen_output_dir_command(output_dir = analysis_out_dir),
             gen_render_command(
               notebook_file = notebook_file,
-              output_file = analysis$out_file[[notebook]],
-              output_dir = analysis$out_dir[[notebook]],
+              output_file = analysis_out_file,
+              output_dir = analysis_out_dir,
               params =  analysis$params[[notebook]],
               rmarkdown_params = rmarkdown_params
-            ),
-            gen_symlink_commands(
-              from = fs::path(out_dir_human, analysis$notebook_name[[notebook]]),
-              to = analysis$out_dir[[notebook]]
             )
+          )
+        ),
+        gen_make_rule(
+          out = analysis_out_file_human,
+          deps = analysis_out_file,
+          recipe = gen_symlink_commands(
+            to = analysis_out_dir,
+            from = analysis_out_dir_human
           )
         )
       )

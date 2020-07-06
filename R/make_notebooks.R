@@ -106,7 +106,7 @@ gen_output_dir_command <- function(output_dir) {
 gen_symlink_commands <- function(to, from) {
   c(paste0('-rm -rf "', from, '"'),
     paste0('mkdir -p "', fs::path_dir(from), '"'),
-    paste0('-ln -s "', fs::path_rel(to, fs::path_dir(from)), '" "', from, '"')
+    paste0('-ln -s "$$(realpath --relative-to="', fs::path_dir(from), '" "', to, '")" "', from, '"')
   )
 }
 

@@ -185,6 +185,6 @@ make_makefile <- function(analysis,
     out_dir_human = out_dir_human
   )
   cat(paste0(all_rules, collapse="\n"), file = makefile)
-  if(!fs::file_exists("Makefile")) cat("include *.mk\n", file="Makefile")
+  if(!fs::file_exists("Makefile") & !fs::file_exists("makefile")) cat("include *.mk\n", file="makefile")
   invisible(NULL)
 }

@@ -26,6 +26,7 @@ hash_params <- function(params) {
 
 #' @export
 bind_parameters <- function(analysis, ..., output_dir="results", parameter_set_name=analysis$name){
+  force(list(...))
   all_params <- as.list(enexprs(...))
   unused_params <- all_params
   analysis$params <- list()

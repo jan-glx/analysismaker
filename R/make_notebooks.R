@@ -90,6 +90,7 @@ gen_render_command <- function(notebook_file, output_file, output_dir, params, r
       output_file = !!output_file,
       output_dir = !!output_dir,
       params=!!params,
+      clean = FALSE,
       !!!rmarkdown_params
     )
   )

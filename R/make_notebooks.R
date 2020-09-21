@@ -148,7 +148,6 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
           out = analysis_out_file,
           deps = c(
             notebook_file,
-            fs::path(analysis$notebook_dir, "setup_chunk.R"),
             analysis$file_dependencies[[notebook]]
           ),
           recipe = c(

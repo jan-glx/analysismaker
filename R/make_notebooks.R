@@ -122,7 +122,7 @@ gen_make_rules <- function(analysis, rmarkdown_params = NULL, analysis_name = de
 
   c(gen_make_rule(
       out = analysis_name,
-      deps = analysis$out_file_human
+      deps = c(analysis$out_file_human, analysis$out_file)
     ),
     gen_make_rule(
     out = paste0("clean_", analysis_name),

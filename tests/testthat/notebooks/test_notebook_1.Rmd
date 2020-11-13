@@ -8,9 +8,10 @@ This is an example notebook. It was knitted with the following parameters:
 
 ```{r print-params}
 str(params)
+knitr::opts_knit$set(root.dir = "..")
 ```
 
 ```{r}
-cat("test result", file = fs::path(results_dir, "test_dep_file.txt"))
+cat("test result\n", file = fs::path(params$results_dir, "test_dep_file.txt"))
 ```
 

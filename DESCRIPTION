@@ -1,7 +1,7 @@
 Package: analysismaker2
 Type: Package
 Title: Analysis maker 2
-Version: 0.0.002
+Version: 0.0.003
 Authors@R: 
     person(given = "Jan",
            family = "Gleixner",

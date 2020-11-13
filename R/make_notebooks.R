@@ -96,8 +96,8 @@ expr_to_shell <- function(expr) {
   paste0("Rscript -e '", gsub(pattern = "'", replacement = "'''", paste0(deparse(expr), collapse="")) ,"'")
 }
 
-gen_make_rule <- function(out, deps = character(0), recipe = character(0)) {
-  paste0(out, ":", paste0(sprintf(" %s", deps), collapse = ""), "\n", paste0(sprintf("\t%s\n", recipe), collapse=""))
+gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
+  paste0(paste(outs, collapse = " "), " :", paste0(sprintf(" %s", deps), collapse = ""), "\n", paste0(sprintf("\t%s\n", recipe), collapse=""))
 }
 
 gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {

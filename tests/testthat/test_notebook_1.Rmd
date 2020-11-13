@@ -1,0 +1,11 @@
+---
+title: "test"
+params:
+  example_param_1: "hello world!"
+  results_dir: "results"
+---
+This is an example notebook. It was knitted with the following parameters:
+
+```{r print-params}
+str(params)
+```

@@ -30,7 +30,8 @@ add_external_dependency <- function(analysis, dependency_file, dependency_name =
 #' @export
 add_notebook <- function(analysis, notebook_file, products = character(0), dependencies = character(0), params = list(), notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))){
   params_call <- params
-  params_nb <- rmarkdown::yaml_front_matter(fs::path(analysis$notebook_dir, notebook_file))$params
+  notebook_file <- fs::path(analysis$notebook_dir, notebook_file)
+  params_nb <- rmarkdown::yaml_front_matter(notebook_file)$params
   params_nb$results_dir <- NULL # change in results_dir should not change hash & is overwritten anyway
 
   deps <- analysis$dependencies[dependencies]
@@ -98,12 +99,12 @@ gen_make_rule <- function(out, deps = character(0), recipe = character(0)) {
 }
 
 gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {
-  rmarkdown_params <- rmarkdown_params %||% exprs(out_format = rmarkdown::html_document(dev="png", keep_md=TRUE))
+  rmarkdown_params <- rmarkdown_params %||% exprs(output_format = rmarkdown::html_document(dev="png", keep_md=TRUE))
   render_expr <- expr(
     rmarkdown::render(
       input = !!notebook_file,
-      out_file = !!out_file,
-      out_dir = !!out_dir,
+      output_file = !!out_file,
+      output_dir = !!out_dir,
       params=!!params,
       clean = FALSE,
       !!!rmarkdown_params

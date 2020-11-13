@@ -93,7 +93,7 @@ hash_params <- function(params) {
 }
 
 expr_to_shell <- function(expr) {
-  paste0("Rscript -e '", gsub(pattern = "'", replacement = "'''", paste0(deparse(expr), collapse="")) ,"'")
+  paste0("\"$(R_HOME)/bin/Rscript\" -e '", gsub(pattern = "'", replacement = "'''", paste0(deparse(expr), collapse="")) ,"'")
 }
 
 gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
@@ -135,14 +135,14 @@ gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
     clean_target <- paste0("clean_", out_dir)
     c(
       gen_make_rule( # clean rule
-        out = clean_target,
+        outs = clean_target,
         recipe = c(
           gen_clean_command(out_dir = out_dir),
           gen_clean_command(out_dir = out_dir_human)
         ),
       ),
       gen_make_rule( # notebook rule
-        out = c(out_file, other_out_files),
+        outs = c(out_file, other_out_files),
         deps = c(
           notebook_file,
           dependencies
@@ -160,7 +160,7 @@ gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
         )
       ),
       gen_make_rule( # rule for human readable file name
-        out = out_file_human,
+        outs = out_file_human,
         deps = out_file,
         recipe = gen_symlink_commands(
           to = out_dir,
@@ -173,11 +173,11 @@ gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
 
 gen_make_rules <- function(analysis, analysis_name = analysis$name, rmarkdown_params = NULL) {
   c(gen_make_rule( # analysis level rule
-      out = analysis_name,
+      outs = analysis_name,
       deps = sapply(analysis$notebooks, function(notebook) notebook$out_file_human)
     ),
     gen_make_rule( # analysis level clean rule
-      out = paste0("clean_", analysis_name),
+      outs = paste0("clean_", analysis_name),
       deps = sprintf("clean_%s", sapply(analysis$notebooks, function(notebook) notebook$out_dir))
     ),
     # individual notebook rules

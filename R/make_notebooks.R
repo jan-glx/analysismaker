@@ -30,6 +30,7 @@ add_external_dependency <- function(analysis, dependency_file, dependency_name =
 #' @export
 add_notebook <- function(analysis, notebook_file, products = character(0), dependencies = character(0), params = list(), notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))){
   params_call <- params
+  force(notebook_name)
   notebook_file <- fs::path(analysis$notebook_dir, notebook_file)
   params_nb <- rmarkdown::yaml_front_matter(notebook_file)$params
   params_nb$results_dir <- NULL # change in results_dir should not change hash & is overwritten anyway

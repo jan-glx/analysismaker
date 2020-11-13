@@ -1,7 +1,8 @@
 ---
 title: "test"
 params:
-  example_param_1: "hello world!"
+  example_param_2: "hello world!"
+  example_dep_1: "file"
   results_dir: "results"
 ---
 This is an example notebook. It was knitted with the following parameters:
@@ -9,8 +10,3 @@ This is an example notebook. It was knitted with the following parameters:
 ```{r print-params}
 str(params)
 ```
-
-```{r}
-cat("test result", file = fs::path(results_dir, "test_dep_file.txt"))
-```
-

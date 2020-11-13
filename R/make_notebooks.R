@@ -65,6 +65,7 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
 
   out_file <- fs::path(out_dir, fs::path_ext_set(notebook_name, "html"))
   other_out_files <- fs::path(out_dir, products)
+  names(other_out_files) <- names(products)
 
   out_dir_human <- fs::path(analysis$out_dir_human, notebook_name)
   out_file_human <- fs::path(out_dir_human, fs::path_ext_set(notebook_name, "html"))

@@ -101,14 +101,13 @@ gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
 }
 
 gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {
-  rmarkdown_params <- rmarkdown_params %||% exprs(output_format = rmarkdown::html_document(dev="png", keep_md=TRUE))
+  rmarkdown_params <- rmarkdown_params %||% exprs(intermediates_dir = tempdir(), clean = FALSE)
   render_expr <- expr(
     rmarkdown::render(
       input = !!notebook_file,
       output_file = !!out_file,
       output_dir = !!out_dir,
       params=!!params,
-      clean = FALSE,
       !!!rmarkdown_params
     )
   )

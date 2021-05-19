@@ -99,7 +99,12 @@ expr_to_shell <- function(expr) {
 }
 
 gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
-  outs <- stringi::stri_replace_last_fixed(outs, ".", "%")
+  if(length(outs) > 1) { # workaround for make (multiple output files need to contain a pattern to tell make that they are all created at once)
+    chars <- lapply(strsplit(outs,""), unique, simplify=FALSE)
+    common_chars <- Reduce(intersect, chars[-1], chars[[1]])
+    replaced_char <- common_chars[[length(common_chars)]]
+    outs <- stringi::stri_replace_last_fixed(outs, replaced_char, "%")
+  }
   paste0(paste(outs, collapse = " "), " :", paste0(sprintf(" %s", deps), collapse = ""), "\n", paste0(sprintf("\t%s\n", recipe), collapse=""))
 }
 

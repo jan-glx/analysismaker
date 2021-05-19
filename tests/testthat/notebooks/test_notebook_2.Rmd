@@ -9,7 +9,6 @@ This is an example notebook. It was knitted with the following parameters:
 
 ```{r print-params}
 str(params)
-knitr::opts_knit$set(root.dir = "..")
 ```
 
 ```{r}

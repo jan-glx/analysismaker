@@ -35,11 +35,13 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
   params_nb <- rmarkdown::yaml_front_matter(notebook_file)$params
   params_nb$results_dir <- NULL # change in results_dir should not change hash & is overwritten anyway
 
+  working_dir <- fs::path_dir(notebook_file)
   deps <- analysis$dependencies[dependencies]
   names(deps) <- names(dependencies)
 
 
   params_deps <- as.list(deps[names(deps) %in% names(params_nb)])
+  params_deps <- lapply(params_deps, function(x) fs::path_rel(x, working_dir))
 
   params_sepcified_as_dep_and_as_param <- intersect(params_deps, params_call)
   if(length(params_sepcified_as_dep_and_as_param)>0) stop(length(params_sepcified_as_dep_and_as_param), " parameter(s) supplied in both, dependencies and params: ", paste0(names(params_sepcified_as_dep_and_as_param),  collapse=", "))
@@ -73,7 +75,7 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
   analysis$dependencies[notebook_name] <- out_file
   analysis$dependencies[names(other_out_files)] <- other_out_files
 
-  params$results_dir <- out_dir
+  params$results_dir <- fs::path_rel(out_dir, working_dir)
 
   notebook <- list(out_file_human = out_file_human, out_dir_human = out_dir_human, out_file = out_file, other_out_files = other_out_files, dependencies = deps, notebook_file = notebook_file, params = params, out_dir = out_dir)
   analysis$notebooks[[notebook_name]] <- notebook

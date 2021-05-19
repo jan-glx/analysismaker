@@ -43,7 +43,7 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
   params_deps <- as.list(deps[names(deps) %in% names(params_nb)])
   params_deps <- lapply(params_deps, function(x) fs::path_rel(x, working_dir))
 
-  params_sepcified_as_dep_and_as_param <- intersect(params_deps, params_call)
+  params_sepcified_as_dep_and_as_param <- intersect(names(params_deps), names(params_call))
   if(length(params_sepcified_as_dep_and_as_param)>0) stop(length(params_sepcified_as_dep_and_as_param), " parameter(s) supplied in both, dependencies and params: ", paste0(names(params_sepcified_as_dep_and_as_param),  collapse=", "))
 
   params <- c(params_deps, params_call)

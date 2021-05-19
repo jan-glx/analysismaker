@@ -99,6 +99,7 @@ expr_to_shell <- function(expr) {
 }
 
 gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
+  outs <- stringi::stri_replace_last_fixed(outs, ".", "%")
   paste0(paste(outs, collapse = " "), " :", paste0(sprintf(" %s", deps), collapse = ""), "\n", paste0(sprintf("\t%s\n", recipe), collapse=""))
 }
 

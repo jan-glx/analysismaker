@@ -8,7 +8,7 @@ add_notebook(
   analysis,
   notebook_file,
   products = character(0),
-  dependencies = character(0),
+  dependencies = list(),
   params = list(),
   notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))
 )
@@ -20,7 +20,7 @@ add_notebook(
 
 \item{products}{(named) character vector specifying file paths of side products of the notebook, they are available as parameters to subsequent notebooks by their name}
 
-\item{dependencies}{named character vector specifying file paths of files required by the notebook, they are available as parameters to the notebook by their name}
+\item{dependencies}{either a named list of character vectors or a named character vector specifying file paths of files required by the notebook. Dependencies matching parameters will be used as such}
 
 \item{params}{named list of parameters to supply to the notebook}
 

@@ -24,21 +24,19 @@ add_external_dependency <- function(analysis, dependency_file, dependency_name =
 #' @param analysis analysis object
 #' @param notebook_file file path of the notebook to add to analysis (relative to analysis$notebook_dir)
 #' @param products (named) character vector specifying file paths of side products of the notebook, they are available as parameters to subsequent notebooks by their name
-#' @param dependencies named character vector specifying file paths of files required by the notebook, they are available as parameters to the notebook by their name
+#' @param dependencies either a named list of character vectors or a named character vector specifying file paths of files required by the notebook. Dependencies matching parameters will be used as such
 #' @param params named list of parameters to supply to the notebook
 #' @param notebook_name character string to use as name of the notebook under which its out_dir will available as parameter to subsequent notebooks
 #' @export
-add_notebook <- function(analysis, notebook_file, products = character(0), dependencies = character(0), params = list(), notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))){
-  params_call <- params
+add_notebook <- function(analysis, notebook_file, products = character(0), dependencies = list(), params = list(), notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))){
   force(notebook_name)
+  params_call <- params
   notebook_file <- fs::path(analysis$notebook_dir, notebook_file)
   params_nb <- rmarkdown::yaml_front_matter(notebook_file)$params
   params_nb$results_dir <- NULL # change in results_dir should not change hash & is overwritten anyway
 
   working_dir <- fs::path_dir(notebook_file)
-  deps <- analysis$dependencies[dependencies]
-  names(deps) <- names(dependencies)
-
+  deps <- lapply(dependencies, function(dependency) analysis$dependencies[dependency])
 
   params_deps <- as.list(deps[names(deps) %in% names(params_nb)])
   params_deps <- lapply(params_deps, function(x) fs::path_rel(x, working_dir))
@@ -90,12 +88,12 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
 render_separately <- function(...)  callr::r(function(...) rmarkdown::render(..., envir = globalenv()), args = list(...), show = TRUE)
 
 hash_params <- function(params) {
-  params_string <- gsub(" +", " ", paste(deparse(params[sort(names(params))]), collapse=""))
+  params_string <- deparse1(params[sort(names(params))])
   params_hash <- substr(digest::digest(params_string), 1, 8)
 }
 
 expr_to_shell <- function(expr) {
-  paste0("\"$(R_HOME)/bin/Rscript\" -e '", gsub(pattern = "'", replacement = "'''", paste0(deparse(expr), collapse="")) ,"'")
+  paste0("\"$(R_HOME)/bin/Rscript\" -e '", gsub(pattern = "'", replacement = "'''", deparse1(expr)) ,"'")
 }
 
 gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
@@ -105,7 +103,7 @@ gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
     replaced_char <- common_chars[[length(common_chars)]]
     outs <- stringi::stri_replace_last_fixed(outs, replaced_char, "%")
   }
-  paste0(paste(outs, collapse = " "), " :", paste0(sprintf(" %s", deps), collapse = ""), "\n", paste0(sprintf("\t%s\n", recipe), collapse=""))
+  paste0(paste(outs, collapse = " "), " :", paste0(" ", unlist(deps), recycle0 = TRUE, collapse = ""), "\n", paste0("\t", recipe, "\n", recycle0 = TRUE, collapse=""))
 }
 
 gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {

@@ -9,7 +9,7 @@ test_that("creating simple analysis + makefile does not error", {
   make_output <- system2("make", stdout = TRUE)
   Sys.sleep(1)
   expect_equal(attr(make_output, "status"), NULL)
-  expect_equal(system2("make", stdout = TRUE), "make: Nothing to be done for `test_analysis_1'.")
+  expect_equal(system2("make", stdout = TRUE), "make: Nothing to be done for 'test_analysis_1'.")
   fs::file_delete("makefile")
   fs::file_delete("test_analysis_1.mk")
   fs::dir_delete("results")

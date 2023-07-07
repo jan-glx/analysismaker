@@ -36,10 +36,17 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
   params_nb$results_dir <- NULL # change in results_dir should not change hash & is overwritten anyway
 
   working_dir <- fs::path_dir(notebook_file)
-  deps <- lapply(dependencies, function(dependency) analysis$dependencies[dependency])
+  if(!is.list(dependencies)) dependencies <- as.list(dependencies)
+  deps <- lapply(dependencies, function(dependency) {
+    invalid_deps <- setdiff(dependency, names(analysis$dependencies))
+    if(length(invalid_deps)>0) stop("dependency `", capture.output(dput(invalid_deps)) , "` not found in analysis.")
+    dep <- analysis$dependencies[dependency]
+    collapse::copyAttrib(dep, dependency)
+    dep
+  })
 
-  params_deps <- as.list(deps[names(deps) %in% names(params_nb)])
-  params_deps <- lapply(params_deps, function(x) fs::path_rel(x, working_dir))
+  params_deps <- deps[names(deps) %in% names(params_nb)]
+  params_deps <- lapply(params_deps, function(x) setNames(fs::path_rel(x, working_dir), names(x)))
 
   params_sepcified_as_dep_and_as_param <- intersect(names(params_deps), names(params_call))
   if(length(params_sepcified_as_dep_and_as_param)>0) stop(length(params_sepcified_as_dep_and_as_param), " parameter(s) supplied in both, dependencies and params: ", paste0(names(params_sepcified_as_dep_and_as_param),  collapse=", "))

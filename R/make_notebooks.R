@@ -59,7 +59,7 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
 
 
   invalid_params <- setdiff(names(params_call), names(params_nb))
-  if(length(invalid_params)>0) stop(length(invalid_params), " parameter(s) supplied but specified in ", notebook_file, " (", notebook_name, "):", paste0(names(invalid_params),  collapse=", "))
+  if(length(invalid_params)>0) stop(length(invalid_params), " parameter(s) supplied but not specified in ", notebook_file, " (", notebook_name, "):", paste0(invalid_params,  collapse=", "))
 
   params[names(params_call)] <- params_call
 

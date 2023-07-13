@@ -53,7 +53,7 @@ add_notebook <- function(analysis, notebook_file, products = character(0), depen
 
   params <- c(params_deps, params_call)
 
-  params_not_supplied <- setdiff(names(params_nb), names(params))
+  params_not_supplied <- setdiff(names(params_nb), c(names(params), "WD"))
   if (length(params_not_supplied)>0) message(length(params_not_supplied), " parameter(s) not supplied for \"", notebook_file, "\", (", notebook_name, "). Using defaults:\n",
                                              paste0(params_not_supplied, ": ", params_nb[params_not_supplied],  collapse="\n"), "\n")
 

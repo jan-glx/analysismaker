@@ -1,7 +1,7 @@
 Package: analysismaker2
 Type: Package
 Title: Analysis maker 2
-Version: 0.0.005
+Version: 0.0.006
 Authors@R: 
     person(given = "Jan",
            family = "Gleixner",
@@ -11,6 +11,7 @@ Authors@R:
 Description: Helper package to create make files to run dependent .RMD files.
 Imports:
   callr,
+  collapse,
   digest,
   fs,
   magrittr,

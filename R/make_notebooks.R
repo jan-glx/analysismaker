@@ -106,13 +106,16 @@ expr_to_shell <- function(expr) {
 }
 
 gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
-  if(length(outs) > 1) { # workaround for make (multiple output files need to contain a pattern to tell make that they are all created at once)
+  gen_rule_header <- function(outs, deps)  paste0(paste(outs, collapse = " "), " :", paste0(" ", unlist(deps), recycle0 = TRUE, collapse = ""), "\n")
+  explicit_rule_header <- gen_rule_header(outs, deps)
+  implicit_rule_header <- if(length(outs) > 1) { # workaround for make (multiple output files need to contain a pattern to tell make that they are all created at once) # this is implemented in GNU make 4.3 (2020) as grouped targets use: `targets &: dependencies`
     chars <- lapply(strsplit(outs,""), unique, simplify=FALSE)
     common_chars <- Reduce(intersect, chars[-1], chars[[1]])
     replaced_char <- common_chars[[length(common_chars)]]
     outs <- stringi::stri_replace_last_fixed(outs, replaced_char, "%")
-  }
-  paste0(paste(outs, collapse = " "), " :", paste0(" ", unlist(deps), recycle0 = TRUE, collapse = ""), "\n", paste0("\t", recipe, "\n", recycle0 = TRUE, collapse=""))
+    gen_rule_header(outs, deps)
+  } else ""
+  paste0(explicit_rule_header, implicit_rule_header, paste0("\t", recipe, "\n", recycle0 = TRUE, collapse=""))
 }
 
 gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {

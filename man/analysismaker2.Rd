@@ -2,8 +2,13 @@
 % Please edit documentation in R/analysismaker2.R
 \docType{package}
 \name{analysismaker2}
+\alias{analysismaker2-package}
 \alias{analysismaker2}
 \title{Helper package to create make files for .RMD files with dependencies}
 \description{
 This package helps to create makefiles to render interdependent notebooks with parameters.
+}
+\author{
+\strong{Maintainer}: Jan Gleixner \email{jan.gleixner@gmail.com} (\href{https://orcid.org/0000-0001-5006-7375}{ORCID})
+
 }

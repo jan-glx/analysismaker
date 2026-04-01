@@ -216,6 +216,6 @@ write_makefile <- function(analysis, analysis_name = analysis$name, makefile = p
     rmarkdown_params = rmarkdown_params
   )
   cat(paste0(all_rules, collapse="\n"), file = makefile)
-  if(!fs::file_exists("Makefile") & !fs::file_exists("makefile")) cat("include *.mk\n\n.SUFFIXES:\n", file="makefile")
+  if(!fs::file_exists("Makefile") & !fs::file_exists("makefile")) cat("include *.mk\n\n..SECONDARY:\n\nSUFFIXES:\n", file="makefile")
   invisible(NULL)
 }

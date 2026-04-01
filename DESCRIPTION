@@ -15,11 +15,9 @@ Imports:
   digest,
   fs,
   magrittr,
-  Matrix,
   rlang,
   rmarkdown,
-  stringi,
-  tidyselect
+  stringi
 License: GPL-2
 Encoding: UTF-8
 LazyData: true

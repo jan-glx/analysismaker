@@ -30,6 +30,8 @@ add_external_dependency <- function(analysis, dependency_file, dependency_name =
 #' @export
 add_notebook <- function(analysis, notebook_file, products = character(0), dependencies = list(), params = list(), notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))){
   force(notebook_name)
+  stopifnot(length(notebook_file) == 1)# notebook_file needs to be a string (character vector of length 1)
+  stopifnot(length(notebook_name) == 1)# notebook_name needs to be a string (character vector of length 1)
   params_call <- params
   notebook_file <- fs::path(analysis$notebook_dir, notebook_file)
   params_nb <- rmarkdown::yaml_front_matter(notebook_file)$params

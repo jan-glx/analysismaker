@@ -2,3 +2,4 @@
 .Rhistory
 .RData
 .Ruserdata
+tests/testthat/notebooks/test_notebook_*.md

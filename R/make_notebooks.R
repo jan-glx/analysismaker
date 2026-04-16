@@ -1,114 +1,10 @@
-#' Create new analysis object
-#' @param name character string. Specifies name of the analysis (used in output file names)
-#' @param notebook_dir base directory of the notebook files
-#' @param out_dir base directory for the result files
-#' @param out_dir_human base directory for links to the result files with human readable names
-#' @export
-new_analysis <- function(name="analysis", notebook_dir="notebooks", out_dir = "results",  out_dir_human = fs::path("results_human", name)) {
-  rval <- list(name=name, notebooks=list(), dependencies=character(0), notebook_dir=notebook_dir, out_dir=out_dir, out_dir_human=out_dir_human)
-  class(rval) <- "analysis"
-  rval
-}
-
-#' Add external file to use as dependency
-#' @param analysis analysis object (as created with new_analysis)
-#' @param dependency_file character string. Specifies the path of the external dependency
-#' @param dependency_name character string. Name under which above path is available as parameter to notebooks.
-#' @export
-add_external_dependency <- function(analysis, dependency_file, dependency_name = fs::path_file(dependency_file)) {
-  analysis$dependencies[dependency_name] <- dependency_file
-  analysis
-}
-
-#' Add notebook to analysis
-#' @param analysis analysis object
-#' @param notebook_file file path of the notebook to add to analysis (relative to analysis$notebook_dir)
-#' @param products (named) character vector specifying file paths of side products of the notebook, they are available as parameters to subsequent notebooks by their name
-#' @param dependencies either a named list of character vectors or a named character vector specifying file paths of files required by the notebook. Dependencies matching parameters will be used as such
-#' @param params named list of parameters to supply to the notebook
-#' @param notebook_name character string to use as name of the notebook under which its out_dir will available as parameter to subsequent notebooks
-#' @export
-add_notebook <- function(analysis, notebook_file, products = character(0), dependencies = list(), params = list(), notebook_name = fs::path_sanitize(fs::path_ext_remove(notebook_file))){
-  force(notebook_name)
-  stopifnot(length(notebook_file) == 1)# notebook_file needs to be a string (character vector of length 1)
-  stopifnot(length(notebook_name) == 1)# notebook_name needs to be a string (character vector of length 1)
-  params_call <- params
-  notebook_file <- fs::path(analysis$notebook_dir, notebook_file)
-  params_nb <- rmarkdown::yaml_front_matter(notebook_file)$params
-  params_nb$results_dir <- NULL # change in results_dir should not change hash & is overwritten anyway
-
-  working_dir <- fs::path_dir(notebook_file)
-  if(!is.list(dependencies)) dependencies <- as.list(dependencies)
-  deps <- lapply(dependencies, function(dependency) {
-    invalid_deps <- setdiff(dependency, names(analysis$dependencies))
-    if(length(invalid_deps)>0) stop("dependency `", utils::capture.output(dput(invalid_deps)) , "` not found in analysis.")
-    dep <- analysis$dependencies[dependency]
-    collapse::copyAttrib(dep, dependency)
-    dep
-  })
-
-  params_deps <- deps[names(deps) %in% names(params_nb)]
-  params_deps <- lapply(params_deps, function(x) stats::setNames(fs::path_rel(x, working_dir), names(x)))
-
-  params_sepcified_as_dep_and_as_param <- intersect(names(params_deps), names(params_call))
-  if(length(params_sepcified_as_dep_and_as_param)>0) stop(length(params_sepcified_as_dep_and_as_param), " parameter(s) supplied in both, dependencies and params: ", paste0(names(params_sepcified_as_dep_and_as_param),  collapse=", "))
-
-  params <- c(params_deps, params_call)
-
-  params_not_supplied <- setdiff(names(params_nb), c(names(params), "WD"))
-  if (length(params_not_supplied)>0) message(length(params_not_supplied), " parameter(s) not supplied for \"", notebook_file, "\", (", notebook_name, "). Using defaults:\n",
-                                             paste0(params_not_supplied, ": ", params_nb[params_not_supplied],  collapse="\n"), "\n")
-
-
-  invalid_params <- setdiff(names(params_call), names(params_nb))
-  if(length(invalid_params)>0) stop(length(invalid_params), " parameter(s) supplied but not specified in ", notebook_file, " (", notebook_name, "):", paste0(invalid_params,  collapse=", "))
-
-  params[names(params_call)] <- params_call
-
-  #sort parameter list for hashing
-  params <- params[sort(names(params))]
-
-  params_hash <- hash_params(params)
-
-  out_dir <- fs::path(analysis$out_dir, notebook_name, fs::path_sanitize(params_hash))
-
-  out_file <- fs::path(out_dir, paste0(notebook_name, ".html"))
-  other_out_files <- fs::path(out_dir, products)
-  names(other_out_files) <- names(products)
-
-  out_dir_human <- fs::path(analysis$out_dir_human, notebook_name)
-  out_file_human <- fs::path(out_dir_human, paste0(notebook_name, ".html"))
-
-  analysis$dependencies[notebook_name] <- out_file
-  analysis$dependencies[names(other_out_files)] <- other_out_files
-
-  params$results_dir <- fs::path_rel(out_dir, working_dir)
-
-  notebook <- list(out_file_human = out_file_human, out_dir_human = out_dir_human, out_file = out_file, other_out_files = other_out_files, dependencies = deps, notebook_file = notebook_file, params = params, out_dir = out_dir)
-  analysis$notebooks[[notebook_name]] <- notebook
-  analysis
-}
-
-#' Render separately
-#'
-#' helper function to render rmarkdown in a separate process using callr
-#' @param ... parameters to rmarkdown::render
-#' @export
-render_separately <- function(...)  callr::r(function(...) rmarkdown::render(..., envir = globalenv()), args = list(...), show = TRUE)
-
-hash_params <- function(params) {
-  params_string <- deparse1(params[sort(names(params))])
-  params_hash <- substr(digest::digest(params_string), 1, 8)
-}
-
-expr_to_shell <- function(expr) {
-  paste0("\"$(R_HOME)/bin/Rscript\" -e '", gsub(pattern = "'", replacement = "'''", deparse1(expr)) ,"'")
-}
+# Make-specific backend for analysismaker2.
+# Shared analysis-building functions live in R/notebooks.R.
 
 gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
   gen_rule_header <- function(outs, deps)  paste0(paste(outs, collapse = " "), " :", paste0(" ", unlist(deps), recycle0 = TRUE, collapse = ""), "\n")
   explicit_rule_header <- gen_rule_header(outs, deps)
-  implicit_rule_header <- if(length(outs) > 1) { # workaround for make (multiple output files need to contain a pattern to tell make that they are all created at once) # this is implemented in GNU make 4.3 (2020) as grouped targets use: `targets &: dependencies`
+  implicit_rule_header <- if(length(outs) > 1) {
     chars <- lapply(strsplit(outs,""), unique, simplify=FALSE)
     common_chars <- Reduce(intersect, chars[-1], chars[[1]])
     replaced_char <- common_chars[[length(common_chars)]]
@@ -116,20 +12,6 @@ gen_make_rule <- function(outs, deps = character(0), recipe = character(0)) {
     gen_rule_header(outs, deps)
   } else ""
   paste0(explicit_rule_header, implicit_rule_header, paste0("\t", recipe, "\n", recycle0 = TRUE, collapse=""))
-}
-
-gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {
-  rmarkdown_params <- rmarkdown_params %||% exprs(intermediates_dir = tempdir(), clean = FALSE)
-  render_expr <- expr(
-    rmarkdown::render(
-      input = !!notebook_file,
-      output_file = !!out_file,
-      output_dir = !!out_dir,
-      params=!!params,
-      !!!rmarkdown_params
-    )
-  )
-  expr_to_shell(render_expr)
 }
 
 gen_clean_command <- function(out_dir) {
@@ -151,14 +33,14 @@ gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
   with(notebook, {
     clean_target <- paste0("clean_", out_dir)
     c(
-      gen_make_rule( # clean rule
+      gen_make_rule(
         outs = clean_target,
         recipe = c(
           gen_clean_command(out_dir = out_dir),
           gen_clean_command(out_dir = out_dir_human)
         ),
       ),
-      gen_make_rule( # notebook rule
+      gen_make_rule(
         outs = c(out_file, other_out_files),
         deps = c(
           notebook_file,
@@ -171,12 +53,12 @@ gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
             notebook_file = notebook_file,
             out_file = out_file,
             out_dir = out_dir,
-            params =  params,
+            params = params,
             rmarkdown_params = rmarkdown_params
           )
         )
       ),
-      gen_make_rule( # rule for human readable file name
+      gen_make_rule(
         outs = out_file_human,
         deps = out_file,
         recipe = gen_symlink_commands(
@@ -189,15 +71,14 @@ gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
 }
 
 gen_make_rules <- function(analysis, analysis_name = analysis$name, rmarkdown_params = NULL) {
-  c(gen_make_rule( # analysis level rule
+  c(gen_make_rule(
       outs = analysis_name,
       deps = sapply(analysis$notebooks, function(notebook) notebook$out_file_human)
     ),
-    gen_make_rule( # analysis level clean rule
+    gen_make_rule(
       outs = paste0("clean_", analysis_name),
       deps = sprintf("clean_%s", sapply(analysis$notebooks, function(notebook) notebook$out_dir))
     ),
-    # individual notebook rules
     sapply(analysis$notebooks, gen_make_rules_nb, rmarkdown_params = rmarkdown_params)
   ) %>% paste0(collapse="\n")
 }

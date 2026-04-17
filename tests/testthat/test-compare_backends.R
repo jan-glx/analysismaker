@@ -6,7 +6,7 @@ test_that("make and nextflow produce identical results_human structure and produ
 
   # --- run Make in its own tempdir -------------------------------------------
   make_dir <- withr::local_tempdir()
-  file.copy(test_path("notebooks"), make_dir, recursive = TRUE)
+  copy_notebooks(analysis, make_dir)
   withr::with_dir(make_dir, {
     write_makefile(analysis)
     system2("make", stdout = FALSE, stderr = FALSE)
@@ -14,7 +14,7 @@ test_that("make and nextflow produce identical results_human structure and produ
 
   # --- run Nextflow in its own tempdir ----------------------------------------
   nf_dir <- withr::local_tempdir()
-  file.copy(test_path("notebooks"), nf_dir, recursive = TRUE)
+  copy_notebooks(analysis, nf_dir)
   withr::with_dir(nf_dir, {
     write_nextflow(analysis, nf_file = "pipeline.nf")
     system2("nextflow", c("run", "pipeline.nf", "-ansi-log", "false"),

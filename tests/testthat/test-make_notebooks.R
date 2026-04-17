@@ -2,7 +2,7 @@ simple_analysis <- make_simple_analysis()
 
 test_that("makefile generation does not error", {
   wd <- withr::local_tempdir()
-  file.copy(test_path("notebooks"), wd, recursive = TRUE)
+  copy_notebooks(simple_analysis, wd)
   withr::local_dir(wd)
 
   write_makefile(simple_analysis, analysis_name = "test_analysis_1")

@@ -87,7 +87,7 @@ test_that("nextflow run executes both notebooks end-to-end", {
   skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not on PATH")
 
   wd <- withr::local_tempdir()
-  file.copy(test_path("notebooks"), wd, recursive = TRUE)
+  copy_notebooks(simple_analysis, wd)
   withr::local_dir(wd)
 
   write_nextflow(simple_analysis, nf_file = "test_nf.nf")

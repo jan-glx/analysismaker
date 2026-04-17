@@ -1,14 +1,25 @@
 # Common analysis building blocks shared by all backends (Make, Nextflow, ...)
 
 #' Create new analysis object
-#' @param name character string. Specifies name of the analysis (used in output file names)
-#' @param notebook_dir base directory of the notebook files
-#' @param out_dir base directory for the result files
-#' @param out_dir_human base directory for links to the result files with human readable names
+#'
+#' @param name character string. Name of the analysis (used in output file names).
+#' @param notebook_dir base directory of the notebook files, relative to the
+#'   current working directory.
+#' @param out_dir base directory for result files, relative to the current
+#'   working directory.
+#' @param out_dir_human base directory for human-readable symlinks to results.
+#'
+#' @details
+#' All paths in the analysis object are relative to the working directory at
+#' the time \code{new_analysis()} is called (the \emph{project root}).
+#' \code{write_makefile()} and \code{write_nextflow()} must be called from the
+#' same working directory, as must \code{make} / \code{nextflow run}.
+#' Use \code{withr::with_dir()} if you need to define or write from a
+#' different location.
 #' @export
 new_analysis <- function(name="analysis", notebook_dir="notebooks", out_dir = "results",  out_dir_human = fs::path("results_human", name)) {
   name <- trimws(name)
-  rval <- list(name=name, notebooks=list(), dependencies=character(0), notebook_dir=notebook_dir, out_dir=out_dir, out_dir_human=out_dir_human)
+  rval <- list(name=name, notebooks=list(), dependencies=character(0), notebook_dir=notebook_dir, out_dir=out_dir, out_dir_human=out_dir_human, root=getwd())
   class(rval) <- "analysis"
   rval
 }

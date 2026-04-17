@@ -3,6 +3,22 @@ nf_process_name <- function(notebook_name) {
   paste0("render_", gsub("[^a-zA-Z0-9_]", "_", notebook_name))
 }
 
+# Derive a valid, unique Nextflow emit name for each output file path.
+# Uses the name from analysis$dependencies (which is guaranteed unique by
+# add_notebook()) rather than basename(), avoiding both collisions and
+# leading-digit identifiers.
+path_to_emit <- function(paths, analysis) {
+  dep_paths <- as.character(analysis$dependencies)
+  dep_names <- names(analysis$dependencies)
+  vapply(paths, function(p) {
+    idx <- match(p, dep_paths)
+    raw <- if (!is.na(idx)) dep_names[[idx]] else gsub("[^a-zA-Z0-9_]", "_", basename(p))
+    raw <- gsub("[^a-zA-Z0-9_]", "_", raw)
+    if (grepl("^[0-9]", raw)) raw <- paste0("_", raw)
+    raw
+  }, character(1))
+}
+
 gen_nf_process <- function(notebook_name, notebook, analysis) {
   proc_name <- nf_process_name(notebook_name)
 
@@ -13,7 +29,7 @@ gen_nf_process <- function(notebook_name, notebook, analysis) {
   # --- input: stageAs mirrors the project directory structure ----------------
   # Notebook staged into notebooks/, deps staged into their full relative path.
   # rmarkdown::render() sets CWD to the notebook dir (notebooks/) automatically,
-  # so params like results_dir = "../results/nb/hash" resolve correctly —
+  # so params like results_dir = "../results/nb/hash" resolve correctly --
   # identical to Make, with no parameter remapping needed.
   input_lines <- c(
     sprintf('    path "%s", stageAs: "%s"', basename(nb_file), nb_file),
@@ -22,10 +38,10 @@ gen_nf_process <- function(notebook_name, notebook, analysis) {
   )
 
   # --- output ----------------------------------------------------------------
-  # Outputs are declared at their full subpath — matching where the notebook
+  # Outputs are declared at their full subpath -- matching where the notebook
   # writes them (out_dir for HTML, params$results_dir for products).
   out_files      <- as.character(c(notebook$out_file, notebook$other_out_files))
-  out_emit_names <- gsub("[^a-zA-Z0-9_]", "_", basename(out_files))
+  out_emit_names <- path_to_emit(out_files, analysis)
 
   output_lines <- if (length(out_files) > 0) {
     sprintf('    path "%s", emit: %s', out_files, out_emit_names)
@@ -34,9 +50,6 @@ gen_nf_process <- function(notebook_name, notebook, analysis) {
   }
 
   # --- render command --------------------------------------------------------
-  # output_dir = out_dir so HTML lands in out_dir/ inside work dir.
-  # params$results_dir = "../results/nb/hash" resolves from notebooks/ to
-  # out_dir/ in the work dir — notebook writes products there too.
   render_cmd <- gen_render_command(
     notebook_file = nb_file,
     out_file      = as.character(notebook$out_file),
@@ -102,7 +115,7 @@ gen_nf_workflow <- function(analysis) {
     nb <- analysis$notebooks[[nb_name]]
     for (p in c(nb$out_file, nb$other_out_files)) {
       p_chr <- as.character(p)
-      emit  <- gsub("[^a-zA-Z0-9_]", "_", basename(p_chr))
+      emit  <- path_to_emit(p_chr, analysis)
       produced_by[[p_chr]] <- list(proc = nb_name, emit = emit)
     }
   }

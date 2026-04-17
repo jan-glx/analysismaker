@@ -76,6 +76,8 @@ test_that("upstream output path appears in downstream process input block", {
 # Integration: nextflow inspect -------------------------------------------
 test_that("emitted .nf passes nextflow inspect", {
   skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not installed")
+  wd <- withr::local_tempdir()
+  withr::local_dir(wd)
   tf <- withr::local_tempfile(fileext = ".nf")
   write_nextflow(simple_analysis, nf_file = tf)
   status <- system2("nextflow", c("inspect", tf), stdout = FALSE, stderr = FALSE)

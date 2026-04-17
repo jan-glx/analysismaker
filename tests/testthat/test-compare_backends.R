@@ -34,24 +34,11 @@ test_that("make and nextflow produce identical results_human structure and produ
     if (is_symlink(path)) Sys.readlink(path) else NA_character_
   }
 
-  # Strip content that legitimately varies between runs/backends:
-  #  - ISO 8601 timestamps
-  #  - absolute filesystem paths
-  #  - nextflow work dir hex hashes
-  #  - str(params) output: params legitimately differ between backends
-  #    (results_dir = "." vs "../results/...", dep paths = basename vs full)
+  # Both backends now use identical relative paths throughout, so only
+  # ISO 8601 timestamps (wall-clock) need to be stripped.
   normalize_html <- function(path) {
     html <- paste(readLines(path, warn = FALSE), collapse = "\n")
     html <- gsub("\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2}", "TIMESTAMP", html)
-    html <- gsub("/[^ \"'<>]+/(notebooks|results|work)/", "PATH/\\1/", html)
-    html <- gsub("work/[0-9a-f]{2}/[0-9a-f]+", "work/HASH", html)
-    # str(params) output differs by design: Nextflow remaps dep/results_dir params
-    # Use (?s) dotall flag so .* matches across newlines
-    html <- gsub(
-      "(?s)<pre><code>## List of.*?</code></pre>",
-      "<pre><code>## List of PARAMS</code></pre>",
-      html, perl = TRUE
-    )
     html
   }
 
@@ -90,7 +77,7 @@ test_that("make and nextflow produce identical results_human structure and produ
     expect_equal(make_content, nf_content, label = paste("content:", f))
   }
 
-  # --- 4. HTML files are structurally equivalent after stripping variables ---
+  # --- 4. HTML files are structurally equivalent after stripping timestamps --
   html_files <- make_files[grepl("\\.html$", make_files)]
 
   for (f in html_files) {

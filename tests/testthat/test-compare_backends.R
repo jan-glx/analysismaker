@@ -1,0 +1,101 @@
+test_that("make and nextflow produce identical results_human structure and products", {
+  skip_if(nchar(Sys.which("make"))      == 0L, "make not on PATH")
+  skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not on PATH")
+
+  analysis <- make_simple_analysis()
+
+  # --- run Make in its own tempdir -------------------------------------------
+  make_dir <- withr::local_tempdir()
+  file.copy(test_path("notebooks"), make_dir, recursive = TRUE)
+  withr::with_dir(make_dir, {
+    write_makefile(analysis)
+    system2("make", stdout = FALSE, stderr = FALSE)
+  })
+
+  # --- run Nextflow in its own tempdir ----------------------------------------
+  nf_dir <- withr::local_tempdir()
+  file.copy(test_path("notebooks"), nf_dir, recursive = TRUE)
+  withr::with_dir(nf_dir, {
+    write_nextflow(analysis, nf_file = "pipeline.nf")
+    system2("nextflow", c("run", "pipeline.nf", "-ansi-log", "false"),
+            stdout = FALSE, stderr = FALSE)
+  })
+
+  # --- helpers ----------------------------------------------------------------
+  rh_files <- function(dir) {
+    root <- file.path(dir, "results_human")
+    paths <- list.files(root, recursive = TRUE, all.files = TRUE)
+    sort(paths)
+  }
+
+  is_symlink <- function(path) isTRUE(nchar(Sys.readlink(path)) > 0L)
+
+  symlink_target <- function(path) {
+    if (is_symlink(path)) Sys.readlink(path) else NA_character_
+  }
+
+  # Strip content that legitimately varies between runs/backends:
+  #  - ISO 8601 timestamps
+  #  - absolute filesystem paths
+  #  - nextflow work dir hex hashes
+  #  - str(params) output: params legitimately differ between backends
+  #    (results_dir = "." vs "../results/...", dep paths = basename vs full)
+  normalize_html <- function(path) {
+    html <- paste(readLines(path, warn = FALSE), collapse = "\n")
+    html <- gsub("\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}:\\d{2}", "TIMESTAMP", html)
+    html <- gsub("/[^ \"'<>]+/(notebooks|results|work)/", "PATH/\\1/", html)
+    html <- gsub("work/[0-9a-f]{2}/[0-9a-f]+", "work/HASH", html)
+    # str(params) output differs by design: Nextflow remaps dep/results_dir params
+    # Use (?s) dotall flag so .* matches across newlines
+    html <- gsub(
+      "(?s)<pre><code>## List of.*?</code></pre>",
+      "<pre><code>## List of PARAMS</code></pre>",
+      html, perl = TRUE
+    )
+    html
+  }
+
+  # --- 1. same set of paths under results_human/ -----------------------------
+  make_files <- rh_files(make_dir)
+  nf_files   <- rh_files(nf_dir)
+  expect_equal(make_files, nf_files)
+
+  # --- 2. notebook dirs are symlinks with identical relative targets ----------
+  for (nb_name in names(analysis$notebooks)) {
+    nb      <- analysis$notebooks[[nb_name]]
+    rel_dir <- as.character(nb$out_dir_human)
+
+    make_link <- file.path(make_dir, rel_dir)
+    nf_link   <- file.path(nf_dir,   rel_dir)
+
+    expect_true(is_symlink(make_link), label = paste("make symlink:", rel_dir))
+    expect_true(is_symlink(nf_link),   label = paste("nf symlink:",   rel_dir))
+    expect_equal(
+      symlink_target(make_link),
+      symlink_target(nf_link),
+      label = paste("symlink target:", rel_dir)
+    )
+  }
+
+  # --- 3. non-HTML product files have identical content ----------------------
+  non_html <- make_files[!grepl("\\.html$", make_files)]
+  non_html_files <- non_html[!vapply(
+    file.path(make_dir, "results_human", non_html),
+    is_symlink, logical(1)
+  )]
+
+  for (f in non_html_files) {
+    make_content <- readLines(file.path(make_dir, "results_human", f), warn = FALSE)
+    nf_content   <- readLines(file.path(nf_dir,   "results_human", f), warn = FALSE)
+    expect_equal(make_content, nf_content, label = paste("content:", f))
+  }
+
+  # --- 4. HTML files are structurally equivalent after stripping variables ---
+  html_files <- make_files[grepl("\\.html$", make_files)]
+
+  for (f in html_files) {
+    make_html <- normalize_html(file.path(make_dir, "results_human", f))
+    nf_html   <- normalize_html(file.path(nf_dir,   "results_human", f))
+    expect_equal(make_html, nf_html, label = paste("html:", f))
+  }
+})

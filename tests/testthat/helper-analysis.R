@@ -1,10 +1,8 @@
-# Shared test fixtures — auto-loaded by testthat before all test files.
-
-#' Build the canonical two-notebook analysis used across make and nextflow tests.
-#' Must be called from a directory that contains a `notebooks/` subdirectory
-#' (testthat sets the working directory to `tests/testthat/` automatically).
-make_simple_analysis <- function(name = "test_nf") {
-  analysis <- new_analysis(name = name)
+# Shared test fixtures -- auto-loaded by testthat before all test files.
+# Build the canonical two-notebook analysis used across make and nextflow tests.
+# Must be called from a directory that contains a `notebooks/` subdirectory.
+make_simple_analysis <- function(name = "test_nf", ...) {
+  analysis <- new_analysis(name = name, ...)
   suppressMessages(
     analysis %<>% add_notebook(
       "test_notebook_1.Rmd",

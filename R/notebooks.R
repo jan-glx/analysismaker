@@ -115,7 +115,7 @@ hash_params <- function(params) {
 }
 
 expr_to_shell <- function(expr) {
-  paste0("\"$(R_HOME)/bin/Rscript\" -e '", gsub(pattern = "'", replacement = "'''", deparse1(expr)) ,"'")
+  paste0("Rscript -e '", gsub(pattern = "'", replacement = "'''", deparse1(expr)) ,"'")
 }
 
 gen_render_command <- function(notebook_file, out_file, out_dir, params, rmarkdown_params = NULL) {

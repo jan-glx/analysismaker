@@ -10,7 +10,7 @@ make_simple_analysis <- function(name = "test_nf", notebook_dir = test_path("not
     )
   )
 
-  analysis %<>% add_external_dependency(test_path("test_external_dep_file.txt"), "external_dep_1")
+  analysis %<>% add_external_dependency(fs::path(analysis$notebook_dir, "test_external_dep_file.txt"), "external_dep_1")
 
   suppressMessages(
     analysis %<>% add_notebook(

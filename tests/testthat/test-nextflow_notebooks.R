@@ -104,6 +104,7 @@ test_that("nextflow run executes both notebooks end-to-end", {
   nb1_dir <- simple_analysis$notebooks[["test_notebook_1"]]$out_dir_human
   nb2_dir <- simple_analysis$notebooks[["test_notebook_2"]]$out_dir_human
   expect_true(file.exists(file.path(nb1_dir, "test_notebook_1.html")))
+  expect_true(file.exists(file.path(nb1_dir, "test_out_file.txt")))
   expect_true(file.exists(file.path(nb1_dir, "test_dep_file.txt")))
   expect_true(file.exists(file.path(nb2_dir, "test_notebook_2.html")))
 })

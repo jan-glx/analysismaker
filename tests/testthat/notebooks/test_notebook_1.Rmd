@@ -12,5 +12,6 @@ str(params)
 
 ```{r}
 cat("test result\n", file = fs::path(params$results_dir, "test_dep_file.txt"))
+cat("undeclared test result\n", file = fs::path(params$results_dir, "test_out_file.txt"))
 ```
 

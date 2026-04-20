@@ -71,9 +71,6 @@ test_that("upstream output path appears in downstream process input block", {
   expect_match(nb2_block, "test_dep_file.txt", fixed = TRUE)
 })
 
-skip_if_nextflow_missing <- function() {
-  skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not on PATH")
-}
 
 # Integration: nextflow inspect -------------------------------------------
 test_that("emitted .nf passes nextflow inspect", {

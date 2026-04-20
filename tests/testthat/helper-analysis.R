@@ -54,6 +54,10 @@ make_large_analysis <- function(n = 500, notebook_dir = test_path("notebooks"), 
   analysis
 }
 
+skip_if_nextflow_missing <- function() {
+  skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not on PATH")
+}
+
 expect_system2_success <- function(command, args = character(), stdout = TRUE, stderr = TRUE, ...) {
   result <- suppressWarnings(system2(command, args, stdout = stdout, stderr = stderr, ...))
   expect_equal(attr(result, "status"), NULL, info = paste(

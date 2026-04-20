@@ -71,10 +71,13 @@ test_that("upstream output path appears in downstream process input block", {
   expect_match(nb2_block, "test_dep_file.txt", fixed = TRUE)
 })
 
+skip_if_nextflow_missing <- function() {
+  skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not on PATH")
+}
 
 # Integration: nextflow inspect -------------------------------------------
 test_that("emitted .nf passes nextflow inspect", {
-  skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not installed")
+  skip_if_nextflow_missing()
   wd <- withr::local_tempdir()
   withr::local_dir(wd)
   tf <- withr::local_tempfile(fileext = ".nf")
@@ -85,7 +88,7 @@ test_that("emitted .nf passes nextflow inspect", {
 
 # Execution: nextflow run actually renders both notebooks ------------------
 test_that("nextflow run executes both notebooks end-to-end", {
-  skip_if(nchar(Sys.which("nextflow")) == 0L, "nextflow not on PATH")
+  skip_if_nextflow_missing()
 
   wd <- withr::local_tempdir()
   copy_notebooks(simple_analysis, wd)

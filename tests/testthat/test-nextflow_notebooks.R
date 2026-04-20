@@ -82,8 +82,7 @@ test_that("emitted .nf passes nextflow inspect", {
   withr::local_dir(wd)
   tf <- withr::local_tempfile(fileext = ".nf")
   write_nextflow(simple_analysis, nf_file = tf)
-  status <- system2("nextflow", c("inspect", tf), stdout = FALSE, stderr = FALSE)
-  expect_equal(status, 0L)
+  expect_system2_success("nextflow", c("inspect", tf))
 })
 
 # Execution: nextflow run actually renders both notebooks ------------------
@@ -96,12 +95,7 @@ test_that("nextflow run executes both notebooks end-to-end", {
 
   write_nextflow(simple_analysis, nf_file = "test_nf.nf")
 
-  status <- system2(
-    "nextflow",
-    c("run", "test_nf.nf", "-ansi-log", "false"),
-    stdout = FALSE, stderr = FALSE
-  )
-  expect_equal(status, 0L)
+  expect_system2_success("nextflow", c("run", "test_nf.nf", "-ansi-log", "false"))
 
   nb1_dir <- simple_analysis$notebooks[["test_notebook_1"]]$out_dir_human
   nb2_dir <- simple_analysis$notebooks[["test_notebook_2"]]$out_dir_human
@@ -123,15 +117,9 @@ test_that("nextflow inspect and run work for chunked .nf", {
 
   tf <- file.path("big.nf")
   write_nextflow(analysis, nf_file = tf)
-
-  status <- system2("nextflow", c("inspect", tf), stdout = FALSE, stderr = FALSE)
-  expect_equal(status, 0L,  info = "nextflow inspect failed on chunked .nf")
-  
-  nextflow_run_output <- system2(
-    "nextflow",
-    c("run", tf, "-ansi-log", "false")
-  )
-  expect_equal(attr(nextflow_run_output, "status"), 0, info = "nextflow run failed on chunked .nf")
+  expect_true(file.exists(tf))
+  expect_system2_success("nextflow", c("inspect", tf))  
+  expect_system2_success("nextflow", c("run", tf, "-ansi-log", "false"))
 })
 
 # Integration: real cropseq analysis passes nextflow inspect ---------------
@@ -149,6 +137,5 @@ test_that("cropseq analysis .nf passes nextflow inspect", {
   wd <- withr::local_tempdir()
   tf <- file.path(wd, "cropseq.nf")
   write_nextflow(analysis, nf_file = tf)
-  status <- system2("nextflow", c("inspect", tf), stdout = FALSE, stderr = FALSE)
-  expect_equal(status, 0L, info = "nextflow inspect failed on cropseq .nf")
+  expect_system2_success("nextflow", c("inspect", tf))
 })

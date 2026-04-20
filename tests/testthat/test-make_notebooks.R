@@ -7,8 +7,7 @@ test_that("makefile generation does not error", {
 
   write_makefile(simple_analysis, analysis_name = "test_analysis_1")
   expect_true(TRUE)
-  make_output <- system2("make", stdout = TRUE)
-  expect_equal(attr(make_output, "status"), NULL)
+  expect_system2_success("make", stdout = TRUE, stderr = TRUE)
   Sys.sleep(1)
   expect_equal(substr(system2("make", stdout = TRUE), 1, 14), substr("make: Nothing to be done for `test_analysis_1'.", 1, 14))
 })

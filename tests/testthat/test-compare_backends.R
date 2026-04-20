@@ -9,7 +9,7 @@ test_that("make and nextflow produce identical results_human structure and produ
   copy_notebooks(analysis, make_dir)
   withr::with_dir(make_dir, {
     write_makefile(analysis)
-    system2("make", stdout = FALSE, stderr = FALSE)
+    expect_system2_success("make")
   })
 
   # --- run Nextflow in its own tempdir ----------------------------------------
@@ -17,8 +17,7 @@ test_that("make and nextflow produce identical results_human structure and produ
   copy_notebooks(analysis, nf_dir)
   withr::with_dir(nf_dir, {
     write_nextflow(analysis, nf_file = "pipeline.nf")
-    system2("nextflow", c("run", "pipeline.nf", "-ansi-log", "false"),
-            stdout = FALSE, stderr = FALSE)
+    expect_system2_success("nextflow", c("run", "pipeline.nf", "-ansi-log", "false"))
   })
 
   # --- helpers ----------------------------------------------------------------

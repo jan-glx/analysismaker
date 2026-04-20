@@ -53,3 +53,12 @@ make_large_analysis <- function(n = 500, notebook_dir = test_path("notebooks"), 
   })
   analysis
 }
+
+expect_system2_success <- function(command, args = character(), stdout = TRUE, stderr = TRUE, ...) {
+  result <- suppressWarnings(system2(command, args, stdout = stdout, stderr = stderr, ...))
+  expect_equal(attr(result, "status"), NULL, info = paste(
+    "Error in ", command, paste(args, collapse = " "), 
+    "\nFailed with status", attr(result, "status"), 
+    "\nOutput:\n", paste(result, collapse = "\n"), 
+    "\nError:", paste(attr(result, "stderr"), collapse = "\n")))
+}

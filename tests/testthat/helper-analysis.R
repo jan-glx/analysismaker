@@ -9,10 +9,13 @@ make_simple_analysis <- function(name = "test_nf", notebook_dir = test_path("not
       products = c(result_1 = "test_dep_file.txt")
     )
   )
+
+  analysis %<>% add_external_dependency(test_path("test_external_dep_file.txt"), "external_dep_1")
+
   suppressMessages(
     analysis %<>% add_notebook(
       "test_notebook_2.Rmd",
-      dependencies = c(example_dep_1 = "result_1")
+      dependencies = c(example_dep_1 = "result_1", external_dep_1 = "external_dep_1"),
     )
   )
   analysis

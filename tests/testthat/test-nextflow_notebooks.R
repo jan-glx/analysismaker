@@ -78,7 +78,7 @@ test_that("emitted .nf passes nextflow inspect", {
   wd <- withr::local_tempdir()
   withr::local_dir(wd)
   tf <- withr::local_tempfile(fileext = ".nf")
-  write_nextflow(simple_analysis, nf_file = tf)
+  write_nextflow(simple_analysis, nf_file = tf)  
   expect_system2_success("nextflow", c("inspect", tf))
 })
 
@@ -102,6 +102,23 @@ test_that("nextflow run executes both notebooks end-to-end", {
   expect_true(file.exists(file.path(nb2_dir, "test_notebook_2.html")))
 })
 
+
+
+# Integration: small large .nf passes nextflow inspect ------------------------
+test_that("nextflow inspect and run work for small large .nf", {
+  skip_if_nextflow_missing()
+  analysis <- make_large_analysis(n = 2)
+
+  wd <- withr::local_tempdir()
+  copy_notebooks(analysis, wd)
+  withr::local_dir(wd)
+  
+  tf <- file.path("big.nf")
+  write_nextflow(analysis, nf_file = tf)
+  expect_true(file.exists(tf))
+  expect_system2_success("nextflow", c("inspect", tf))  
+  expect_system2_success("nextflow", c("run", tf, "-ansi-log", "false"))
+})
 
 # Integration: chunked .nf passes nextflow inspect ------------------------
 test_that("nextflow inspect and run work for chunked .nf", {

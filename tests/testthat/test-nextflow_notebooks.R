@@ -1,4 +1,3 @@
-
 simple_analysis <- make_simple_analysis()
 
 # Smoke test ----------------------------------------------------------------

@@ -29,3 +29,27 @@ copy_notebooks <- function(analysis, target_dir) {
     fs::path(target_dir,    analysis$notebook_dir)
   )
 }
+
+# Build a large chained analysis for chunking tests.
+# Each notebook depends on the previous one's product.
+make_large_analysis <- function(n = 500, notebook_dir = test_path("notebooks")) {
+  analysis <- new_analysis("big", notebook_dir = notebook_dir)
+  suppressMessages({
+    analysis %<>% add_notebook(
+      "test_notebook_1.Rmd",
+      notebook_name = "nb_001",
+      products = c(dep_001 = "out_001.txt")
+    )
+    for (i in 2:n) {
+      prev_dep <- sprintf("dep_%03d", i - 1)
+      cur_dep <- sprintf("dep_%03d", i)
+      analysis %<>% add_notebook(
+        "test_notebook_1.Rmd",
+        notebook_name = sprintf("nb_%03d", i),
+        dependencies = setNames(prev_dep, sprintf("my_dep_%03d", i)),
+        products = setNames(sprintf("out_%03d.txt", i), cur_dep)
+      )
+    }
+  })
+  analysis
+}

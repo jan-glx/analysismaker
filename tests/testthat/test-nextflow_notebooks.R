@@ -110,3 +110,45 @@ test_that("nextflow run executes both notebooks end-to-end", {
   expect_true(file.exists(file.path(nb1_dir, "test_dep_file.txt")))
   expect_true(file.exists(file.path(nb2_dir, "test_notebook_2.html")))
 })
+
+
+# Integration: chunked .nf passes nextflow inspect ------------------------
+test_that("nextflow inspect and run work for chunked .nf", {
+  skip_if_nextflow_missing()
+  analysis <- make_large_analysis()
+
+  wd <- withr::local_tempdir()
+  copy_notebooks(analysis, wd)
+  withr::local_dir(wd)
+
+  tf <- file.path("big.nf")
+  write_nextflow(analysis, nf_file = tf)
+
+  status <- system2("nextflow", c("inspect", tf), stdout = FALSE, stderr = FALSE)
+  expect_equal(status, 0L,  info = "nextflow inspect failed on chunked .nf")
+  
+  nextflow_run_output <- system2(
+    "nextflow",
+    c("run", tf, "-ansi-log", "false")
+  )
+  expect_equal(attr(nextflow_run_output, "status"), 0, info = "nextflow run failed on chunked .nf")
+})
+
+# Integration: real cropseq analysis passes nextflow inspect ---------------
+test_that("cropseq analysis .nf passes nextflow inspect", {
+  skip_if_nextflow_missing()
+  analysis_script <- "/omics/groups/OE0540/internal/users/gleixner/cropseq_uli_debian/analysis.R"
+  skip_if(!file.exists(analysis_script), "cropseq analysis.R not found")
+
+  withr::local_dir(dirname(analysis_script))
+  env <- new.env(parent = globalenv())
+  source(analysis_script, local = env)
+  skip_if(!exists("analysis", envir = env), "analysis object not found in script")
+  analysis <- get("analysis", envir = env)
+
+  wd <- withr::local_tempdir()
+  tf <- file.path(wd, "cropseq.nf")
+  write_nextflow(analysis, nf_file = tf)
+  status <- system2("nextflow", c("inspect", tf), stdout = FALSE, stderr = FALSE)
+  expect_equal(status, 0L, info = "nextflow inspect failed on cropseq .nf")
+})

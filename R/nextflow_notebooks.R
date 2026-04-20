@@ -43,11 +43,10 @@ gen_nf_process <- function(notebook_name, notebook, analysis) {
   out_files      <- as.character(c(notebook$out_file, notebook$other_out_files))
   out_emit_names <- path_to_emit(out_files, analysis)
 
-  output_lines <- if (length(out_files) > 0) {
-    sprintf('    path "%s", emit: %s', out_files, out_emit_names)
-  } else {
-    sprintf('    path "%s/**"  // no declared products', out_dir)
-  }
+  output_lines <- c(    
+      sprintf('    path "%s/**" ', out_dir),      
+      sprintf('    path "%s", emit: %s', out_files, out_emit_names)
+  )
 
   # --- render command --------------------------------------------------------
   render_cmd <- gen_render_command(
@@ -58,20 +57,27 @@ gen_nf_process <- function(notebook_name, notebook, analysis) {
   )
 
   # --- publishDir: mirror work dir structure into project root ---------------
-  # publishDir "." copies everything from work dir to launch dir, preserving
-  # the out_dir/ subpath — so results/nb/hash/ lands correctly in the project.
-  publish_line <- '  publishDir ".", mode: \'copy\', overwrite: true'
+  # publishDir "." copies all specified output from work dir to launch dir, preserving
+  # directory structure
+  publish_lines <- c(
+            '  publishDir ".", mode: \'symlink\', overwrite: true',
+    sprintf('  publishDir ".", mode: \'symlink\', overwrite: true, saveAs: { f -> f.replace("%s", "%s") }', out_dir, notebook$out_dir_human)
+  )
 
-  # mkdir -p: notebooks subdir (knitr setwd) and out_dir (render target)
+  # --- symlink: create results_human link via afterScript --------------------
+  rel_target    <- fs::path_rel(out_dir, start = notebook$out_dir_human)
+
+  # --- script: mkdir and render ----------------------------------------------
   script_lines <- c(
-    sprintf('    mkdir -p "%s"', dirname(nb_file)),
     sprintf('    mkdir -p "%s"', out_dir),
-    sprintf('    %s', render_cmd)
+    sprintf('    %s', render_cmd),
+    sprintf('    mkdir -p "%s"', dirname(notebook$out_dir_human)),
+    sprintf('    ln -sfn "%s" "%s"', rel_target, notebook$out_dir_human)
   )
 
   paste0(
     sprintf("process %s {\n", proc_name),
-    publish_line, "\n\n",
+    paste(publish_lines, collapse = "\n"), "\n\n",
     "  input:\n",
     paste(input_lines, collapse = "\n"), "\n\n",
     "  output:\n",
@@ -80,28 +86,6 @@ gen_nf_process <- function(notebook_name, notebook, analysis) {
     '  """\n',
     paste(script_lines, collapse = "\n"), "\n",
     '  """\n',
-    "}\n"
-  )
-}
-
-gen_nf_symlinks <- function(analysis) {
-  # Mirror Make's gen_symlink_commands: one directory-level symlink per notebook
-  #   results_human/<name>/<nb>/  ->  ../../results/<nb>/<hash>/
-  symlink_lines <- vapply(analysis$notebooks, function(nb) {
-    out_dir       <- as.character(nb$out_dir)        # results/<nb>/<hash>
-    out_dir_human <- as.character(nb$out_dir_human)  # results_human/<name>/<nb>
-    parent        <- dirname(out_dir_human)
-    rel_target    <- fs::path_rel(out_dir, start = parent)
-    sprintf(
-      '    ["mkdir", "-p", "%s"].execute().waitFor()\n    ["ln", "-sfn", "%s", "%s"].execute().waitFor()',
-      parent, rel_target, out_dir_human
-    )
-  }, character(1))
-  paste0(
-    "workflow.onComplete {\n",
-    "  if (workflow.success) {\n",
-    paste(symlink_lines, collapse = "\n"), "\n",
-    "  }\n",
     "}\n"
   )
 }
@@ -171,9 +155,7 @@ nf_text <- function(analysis, analysis_name = analysis$name) {
     header,
     paste(process_blocks, collapse = "\n"),
     "\n",
-    gen_nf_workflow(analysis),
-    "\n",
-    gen_nf_symlinks(analysis)
+    gen_nf_workflow(analysis)
   )
 }
 

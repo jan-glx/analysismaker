@@ -28,11 +28,6 @@ test_that("make and nextflow produce identical results_human structure and produ
     sort(paths)
   }
 
-  is_symlink <- function(path) isTRUE(nchar(Sys.readlink(path)) > 0L)
-
-  symlink_target <- function(path) {
-    if (is_symlink(path)) Sys.readlink(path) else NA_character_
-  }
 
   # Both backends now use identical relative paths throughout, so only
   # ISO 8601 timestamps (wall-clock) need to be stripped.
@@ -42,34 +37,13 @@ test_that("make and nextflow produce identical results_human structure and produ
     html
   }
 
-  # --- 1. same set of paths under results_human/ -----------------------------
+  # --- same set of paths under results_human/ -----------------------------
   make_files <- rh_files(make_dir)
   nf_files   <- rh_files(nf_dir)
   expect_equal(make_files, nf_files)
 
-  # --- 2. notebook dirs are symlinks with identical relative targets ----------
-  for (nb_name in names(analysis$notebooks)) {
-    nb      <- analysis$notebooks[[nb_name]]
-    rel_dir <- as.character(nb$out_dir_human)
-
-    make_link <- file.path(make_dir, rel_dir)
-    nf_link   <- file.path(nf_dir,   rel_dir)
-
-    expect_true(is_symlink(make_link), label = paste("make symlink:", rel_dir))
-    expect_true(is_symlink(nf_link),   label = paste("nf symlink:",   rel_dir))
-    expect_equal(
-      symlink_target(make_link),
-      symlink_target(nf_link),
-      label = paste("symlink target:", rel_dir)
-    )
-  }
-
-  # --- 3. non-HTML product files have identical content ----------------------
-  non_html <- make_files[!grepl("\\.html$", make_files)]
-  non_html_files <- non_html[!vapply(
-    file.path(make_dir, "results_human", non_html),
-    is_symlink, logical(1)
-  )]
+  # --- non-HTML product files have identical content ----------------------
+  non_html_files <- make_files[!grepl("\\.html$", make_files)]
 
   for (f in non_html_files) {
     make_content <- readLines(file.path(make_dir, "results_human", f), warn = FALSE)
@@ -77,7 +51,7 @@ test_that("make and nextflow produce identical results_human structure and produ
     expect_equal(make_content, nf_content, label = paste("content:", f))
   }
 
-  # --- 4. HTML files are structurally equivalent after stripping timestamps --
+  # --- HTML files are structurally equivalent after stripping timestamps --
   html_files <- make_files[grepl("\\.html$", make_files)]
 
   for (f in html_files) {

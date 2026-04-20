@@ -13,10 +13,14 @@ str(params)
 ```
 
 ```{r}
-readLines(params$example_dep_1)
+a = as.integer(readLines(params$example_dep_1))
+a
 ```
 
 ```{r}
-readLines(params$external_dep_1)
+b = readLines(params$external_dep_1)
 ```
 
+```{r}
+writeLines(as.character(a+1), file.path(params$results_dir, "out.txt"))
+```

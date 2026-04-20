@@ -32,22 +32,22 @@ copy_notebooks <- function(analysis, target_dir) {
 
 # Build a large chained analysis for chunking tests.
 # Each notebook depends on the previous one's product.
-make_large_analysis <- function(n = 500, notebook_dir = test_path("notebooks")) {
-  analysis <- new_analysis("big", notebook_dir = notebook_dir)
+make_large_analysis <- function(n = 500, notebook_dir = test_path("notebooks"), ...) {
+  analysis <- new_analysis("big", notebook_dir = notebook_dir, ...)
+  analysis %<>% add_external_dependency(fs::path(analysis$notebook_dir, "test_external_dep_file.txt"), "external_dep_1")
+  
   suppressMessages({
     analysis %<>% add_notebook(
       "test_notebook_1.Rmd",
       notebook_name = "nb_001",
-      products = c(dep_001 = "out_001.txt")
+      products = c(dep_001 = "test_dep_file.txt")
     )
     for (i in 2:n) {
-      prev_dep <- sprintf("dep_%03d", i - 1)
-      cur_dep <- sprintf("dep_%03d", i)
       analysis %<>% add_notebook(
-        "test_notebook_1.Rmd",
+        "test_notebook_2.Rmd",
         notebook_name = sprintf("nb_%03d", i),
-        dependencies = setNames(prev_dep, sprintf("my_dep_%03d", i)),
-        products = setNames(sprintf("out_%03d.txt", i), cur_dep)
+        dependencies = c(example_dep_1 = sprintf("dep_%03d", i - 1), external_dep_1 = "external_dep_1"),
+        products = setNames("out.txt", sprintf("dep_%03d", i))
       )
     }
   })

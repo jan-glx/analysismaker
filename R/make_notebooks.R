@@ -31,14 +31,32 @@ gen_symlink_commands <- function(to, from) {
 
 gen_make_rules_nb <- function(notebook, rmarkdown_params = NULL){
   with(notebook, {
-    clean_target <- paste0("clean_", out_dir)
     c(
+      # Two clean rules rather than one, so that each rule is either fully
+      # variant-independent or fully variant-specific -- never a mix.
+      #
+      # out_dir is content-addressed (results/<nb>/<hash>), so it carries no
+      # analysis-variant component: two analyses that render a notebook with the
+      # same params (e.g. a `debug` variant of a notebook whose params ignore
+      # DEBUG) produce the very same target in their respective makefiles. Since
+      # makefiles are usually pulled in together via `include *.mk`, make then
+      # sees a repeated target and warns "overriding recipe" / "ignoring old
+      # recipe", and the last-included recipe silently wins.
+      #
+      # Folding the variant-specific out_dir_human removal into that shared
+      # target made the collision consequential -- whichever makefile was
+      # included last decided which variant's symlink got cleaned. Splitting it
+      # out keeps the shared target's recipe identical across variants, so the
+      # duplicates are byte-identical and can simply be deduplicated by the
+      # caller, while the variant's symlink is cleaned by its own uniquely-named
+      # target.
       gen_make_rule(
-        outs = clean_target,
-        recipe = c(
-          gen_clean_command(out_dir = out_dir),
-          gen_clean_command(out_dir = out_dir_human)
-        ),
+        outs = paste0("clean_", out_dir),
+        recipe = gen_clean_command(out_dir = out_dir)
+      ),
+      gen_make_rule(
+        outs = paste0("clean_", out_dir_human),
+        recipe = gen_clean_command(out_dir = out_dir_human)
       ),
       gen_make_rule(
         outs = c(out_file, other_out_files),
@@ -77,7 +95,10 @@ gen_make_rules <- function(analysis, analysis_name = analysis$name, rmarkdown_pa
     ),
     gen_make_rule(
       outs = paste0("clean_", analysis_name),
-      deps = sprintf("clean_%s", sapply(analysis$notebooks, function(notebook) notebook$out_dir))
+      deps = sprintf("clean_%s", c(
+        sapply(analysis$notebooks, function(notebook) notebook$out_dir),
+        sapply(analysis$notebooks, function(notebook) notebook$out_dir_human)
+      ))
     ),
     sapply(analysis$notebooks, gen_make_rules_nb, rmarkdown_params = rmarkdown_params)
   ) %>% paste0(collapse="\n")

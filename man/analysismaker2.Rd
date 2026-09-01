@@ -11,4 +11,9 @@ This package helps to create makefiles to render interdependent notebooks with p
 \author{
 \strong{Maintainer}: Jan Gleixner \email{jan.gleixner@gmail.com} (\href{https://orcid.org/0000-0001-5006-7375}{ORCID})
 
+Authors:
+\itemize{
+  \item Jan Gleixner \email{jan.gleixner@gmail.com} (\href{https://orcid.org/0000-0001-5006-7375}{ORCID})
+}
+
 }

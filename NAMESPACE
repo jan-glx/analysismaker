@@ -11,5 +11,7 @@ export(render_separately)
 export(write_makefile)
 export(write_nextflow)
 import(rlang)
-importFrom(magrittr,`%<>%`)
-importFrom(magrittr,`%>%`)
+importFrom(magrittr,
+  `%<>%`,
+  `%>%`
+)
